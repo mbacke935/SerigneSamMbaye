@@ -3,6 +3,7 @@ class AudioModel {
   final String titre;
   final String? description;
   final String? fichier;
+  final String? lienExterne;
   final String? imageMiniature;
   final String? duree;
   final String? datePublication;
@@ -12,10 +13,18 @@ class AudioModel {
     required this.titre,
     this.description,
     this.fichier,
+    this.lienExterne,
     this.imageMiniature,
     this.duree,
     this.datePublication,
   });
+
+  /// Source de lecture : le lien externe (Internet Archive, etc.) est prioritaire,
+  /// sinon le fichier hébergé.
+  String? get sourceUrl {
+    if (lienExterne != null && lienExterne!.isNotEmpty) return lienExterne;
+    return fichier;
+  }
 
   factory AudioModel.fromJson(Map<String, dynamic> json) {
     return AudioModel(
@@ -23,6 +32,7 @@ class AudioModel {
       titre: json['titre'] as String,
       description: json['description'] as String?,
       fichier: json['fichier'] as String?,
+      lienExterne: json['lien_externe'] as String?,
       imageMiniature: json['image_miniature'] as String?,
       duree: json['duree'] as String?,
       datePublication: json['date_publication'] as String?,

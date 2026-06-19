@@ -37,7 +37,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _initPlayer() async {
-    final url = widget.video.fichier;
+    final url = widget.video.sourceUrl;
     if (url == null || url.isEmpty) {
       setState(() => _playerError = true);
       return;

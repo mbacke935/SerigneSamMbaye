@@ -34,10 +34,11 @@ class AudioPlayerService {
   bool get isPlaying => _player.playing;
 
   Future<void> playAudio(AudioModel audio) async {
-    if (audio.fichier == null || audio.fichier!.isEmpty) return;
+    final url = audio.sourceUrl;
+    if (url == null || url.isEmpty) return;
     _currentAudio = audio;
     _currentAudioNotifier.value = audio;
-    await _player.setUrl(audio.fichier!);
+    await _player.setUrl(url);
     await _player.play();
   }
 

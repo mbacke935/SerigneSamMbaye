@@ -8,7 +8,12 @@ from config.storage import audio_storage
 class Audio(models.Model):
     titre = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    fichier = models.FileField(upload_to='audios/', storage=audio_storage)
+    fichier = models.FileField(upload_to='audios/', storage=audio_storage, blank=True)
+    lien_externe = models.URLField(
+        max_length=500, blank=True,
+        help_text="URL directe d'un audio hébergé ailleurs (ex. Internet Archive .mp3). "
+                  "Prioritaire sur le fichier si renseigné.",
+    )
     image_miniature = models.ImageField(upload_to='miniatures/audios/', blank=True, null=True)
     album = models.ForeignKey(
         'albums.Album', on_delete=models.SET_NULL,

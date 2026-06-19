@@ -16,7 +16,9 @@ class VideoAdmin(admin.ModelAdmin):
             'fields': ('titre', 'description', 'album', 'date_publication', 'is_published')
         }),
         ('Fichiers', {
-            'fields': ('fichier', 'image_miniature', 'duree')
+            'fields': ('lien_externe', 'fichier', 'image_miniature', 'duree'),
+            'description': "Renseignez un <b>lien externe</b> (recommandé pour les gros "
+                           "fichiers, ex. Internet Archive / YouTube) <i>ou</i> téléversez un fichier.",
         }),
         ('Métadonnées', {
             'fields': ('date_creation',)
