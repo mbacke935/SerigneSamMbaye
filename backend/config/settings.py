@@ -166,6 +166,11 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000').split(',')
+    # Autorise le domaine canonique ET toutes les URLs de déploiement Cloudflare
+    # Pages (<hash>.serigne-sam-mbaye.pages.dev) générées par chaque `wrangler deploy`.
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://([a-z0-9-]+\.)?serigne-sam-mbaye\.pages\.dev$",
+    ]
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Serigne Sam Mbaye API',
