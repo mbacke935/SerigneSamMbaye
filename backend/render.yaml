@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: serigne-sam-mbaye-api
+    env: python
+    region: frankfurt
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: serigne-sam-mbaye-api.onrender.com
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: USE_R2
+        value: "True"
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_DOMAIN
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://serigne-sam-mbaye.pages.dev
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
