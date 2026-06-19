@@ -295,7 +295,10 @@ class _VideosGrid extends StatelessWidget {
           childAspectRatio: 0.82,
         ),
         itemCount: videos.length,
-        itemBuilder: (context, i) => VideoCard(video: videos[i]),
+        itemBuilder: (context, i) => VideoCard(
+          video: videos[i],
+          onTap: () => context.push('/videos/lecteur', extra: videos[i]),
+        ),
       ),
     );
   }

@@ -10,32 +10,40 @@ class AudioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 160,
-        margin: const EdgeInsets.only(right: 12),
+        margin: const EdgeInsets.only(right: AppSpacing.md),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          boxShadow: AppTheme.softShadow(0.07),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-              child: _buildThumbnail(),
+            Stack(
+              children: [
+                _buildThumbnail(),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.gold,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                  ),
+                ),
+              ],
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppSpacing.sm + 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -45,24 +53,15 @@ class AudioCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          height: 1.25,
                         ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.play_circle_outline_rounded,
-                          color: AppTheme.primary, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        audio.dureeFormatee.isNotEmpty
-                            ? audio.dureeFormatee
-                            : 'Audio',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
-                      ),
-                    ],
+                  Text(
+                    audio.dureeFormatee.isNotEmpty ? audio.dureeFormatee : 'Audio',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
@@ -91,8 +90,7 @@ class AudioCard extends StatelessWidget {
       height: 100,
       width: 160,
       color: AppTheme.primary.withValues(alpha: 0.08),
-      child: const Icon(Icons.headphones_rounded,
-          color: AppTheme.primary, size: 36),
+      child: const Icon(Icons.headphones_rounded, color: AppTheme.primary, size: 34),
     );
   }
 }

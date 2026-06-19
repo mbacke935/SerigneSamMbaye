@@ -9,56 +9,52 @@ class CitationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(left: BorderSide(color: AppTheme.gold, width: 4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: const Border(left: BorderSide(color: AppTheme.gold, width: 4)),
+        boxShadow: AppTheme.softShadow(0.06),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.format_quote_rounded,
-                    color: AppTheme.gold, size: 22),
-                const SizedBox(width: 8),
+                const Icon(Icons.format_quote_rounded, color: AppTheme.gold, size: 22),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
-                  'Citation du jour',
+                  'CITATION DU JOUR',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: AppTheme.gold,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                        fontSize: 11,
                       ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             Text(
               citation.texte,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: AppTheme.textPrimary,
-                    height: 1.6,
-                  ),
+              style: AppTheme.serif(
+                fontSize: 18,
+                fontStyle: FontStyle.italic,
+                color: scheme.onSurface,
+                height: 1.6,
+              ),
             ),
             if (citation.source != null && citation.source!.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 '— ${citation.source}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
+                      color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
               ),
