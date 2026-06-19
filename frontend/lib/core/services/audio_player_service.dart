@@ -10,10 +10,21 @@ class AudioPlayerService {
   final AudioPlayer _player = AudioPlayer();
   AudioModel? _currentAudio;
   final ValueNotifier<AudioModel?> _currentAudioNotifier = ValueNotifier(null);
+  final ValueNotifier<double> speedNotifier = ValueNotifier(1.0);
 
   ValueListenable<AudioModel?> get currentAudioListenable => _currentAudioNotifier;
+  ValueListenable<double> get speedListenable => speedNotifier;
   AudioModel? get currentAudio => _currentAudio;
   AudioPlayer get player => _player;
+
+  /// Fait défiler les vitesses de lecture courantes (1x → 1.25 → 1.5 → 2 → 0.75).
+  Future<void> cycleSpeed() async {
+    const speeds = [1.0, 1.25, 1.5, 2.0, 0.75];
+    final i = speeds.indexOf(speedNotifier.value);
+    final next = speeds[(i + 1) % speeds.length];
+    speedNotifier.value = next;
+    await _player.setSpeed(next);
+  }
 
   Stream<PlayerState> get playerStateStream => _player.playerStateStream;
   Stream<Duration> get positionStream => _player.positionStream;

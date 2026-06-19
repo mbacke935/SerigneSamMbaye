@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import '../core/models/audio_model.dart';
 import '../core/services/audio_player_service.dart';
 import '../core/theme/app_theme.dart';
+import 'equalizer_bars.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -32,20 +33,22 @@ class _MiniPlayerContent extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push('/audios/lecteur', extra: audio),
       child: Container(
+        margin: const EdgeInsets.fromLTRB(8, 0, 8, 6),
         decoration: BoxDecoration(
           color: AppTheme.primary,
+          borderRadius: BorderRadius.circular(AppRadius.md),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 12,
-              offset: const Offset(0, -2),
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Thin progress bar at top
             StreamBuilder<Duration?>(
               stream: service.durationStream,
               builder: (context, durSnap) {
@@ -66,16 +69,31 @@ class _MiniPlayerContent extends StatelessWidget {
               },
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
-                  // Thumbnail
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     child: _thumbnail(),
                   ),
                   const SizedBox(width: 12),
-                  // Title
+                  StreamBuilder<PlayerState>(
+                    stream: service.playerStateStream,
+                    builder: (context, snap) {
+                      final playing = snap.data?.playing ?? false;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: EqualizerBars(
+                          playing: playing,
+                          color: AppTheme.gold,
+                          barCount: 3,
+                          height: 16,
+                          barWidth: 3,
+                          spacing: 2.5,
+                        ),
+                      );
+                    },
+                  ),
                   Expanded(
                     child: Text(
                       audio.titre,
@@ -87,7 +105,6 @@ class _MiniPlayerContent extends StatelessWidget {
                           fontSize: 13),
                     ),
                   ),
-                  // Play/Pause button
                   StreamBuilder<PlayerState>(
                     stream: service.playerStateStream,
                     builder: (context, snapshot) {
@@ -100,8 +117,11 @@ class _MiniPlayerContent extends StatelessWidget {
                         return const SizedBox(
                           width: 36,
                           height: 36,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppTheme.gold),
+                          child: Padding(
+                            padding: EdgeInsets.all(8),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppTheme.gold),
+                          ),
                         );
                       }
                       return IconButton(

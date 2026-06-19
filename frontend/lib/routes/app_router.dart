@@ -11,6 +11,7 @@ import '../features/audio/screens/audio_list_screen.dart';
 import '../features/audio/screens/audio_player_screen.dart';
 import '../features/video/screens/video_list_screen.dart';
 import '../features/video/screens/video_player_screen.dart';
+import '../features/albums/screens/album_detail_screen.dart';
 import '../features/biography/screens/biography_screen.dart';
 import '../features/citations/screens/citations_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
@@ -68,6 +69,16 @@ class AppRouter {
         path: '/biographie',
         name: 'biography',
         builder: (context, state) => const BiographyScreen(),
+      ),
+      // Détail d'un album (hors shell)
+      GoRoute(
+        path: '/albums/:id',
+        name: 'album',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final titre = state.extra is String ? state.extra as String : null;
+          return AlbumDetailScreen(albumId: id, titre: titre);
+        },
       ),
       // Lecteur vidéo (plein écran, sans bottom nav)
       GoRoute(

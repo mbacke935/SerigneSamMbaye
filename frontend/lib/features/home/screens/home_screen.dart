@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/models/album_model.dart';
 import '../../../core/models/audio_model.dart';
 import '../../../core/models/video_model.dart';
 import '../../../core/models/citation_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/album_service.dart';
 import '../../../core/services/content_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/album_card.dart';
+import '../../../widgets/app_states.dart';
 import '../../../widgets/audio_card.dart';
-import '../../../widgets/video_card.dart';
 import '../../../widgets/citation_card.dart';
+import '../../../widgets/fade_slide_in.dart';
+import '../../../widgets/skeleton.dart';
+import '../../../widgets/video_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +24,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ContentService _service = ContentService(ApiClient());
+  final _apiClient = ApiClient();
+  late final ContentService _service = ContentService(_apiClient);
+  late final AlbumService _albumService = AlbumService(_apiClient);
   late Future<_HomeData> _future;
 
   @override
@@ -30,18 +38,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<_HomeData> _loadData() async {
     final results = await Future.wait([
       _service.getCitationDuJour(),
-      _service.getDerniersAudios(limit: 5),
+      _albumService.getAlbums(),
+      _service.getDerniersAudios(limit: 8),
       _service.getDernieresVideos(limit: 6),
     ]);
     return _HomeData(
       citation: results[0] as CitationModel?,
-      audios: results[1] as List<AudioModel>,
-      videos: results[2] as List<VideoModel>,
+      albums: results[1] as List<AlbumModel>,
+      audios: results[2] as List<AudioModel>,
+      videos: results[3] as List<VideoModel>,
     );
   }
 
   Future<void> _refresh() async {
     setState(() => _future = _loadData());
+    await _future;
   }
 
   @override
@@ -49,16 +60,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: _buildAppBar(context),
       body: RefreshIndicator(
-        color: AppTheme.primary,
         onRefresh: _refresh,
         child: FutureBuilder<_HomeData>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return _buildLoading();
             }
             if (snapshot.hasError || !snapshot.hasData) {
-              return _buildError();
+              return ListView(children: [
+                const SizedBox(height: 120),
+                ErrorRetry(
+                  message: 'Impossible de charger le contenu',
+                  onRetry: _refresh,
+                ),
+              ]);
             }
             return _buildContent(snapshot.data!);
           },
@@ -70,24 +86,37 @@ class _HomeScreenState extends State<HomeScreen> {
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
+      titleSpacing: AppSpacing.md,
       title: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.auto_stories_rounded,
-              color: AppTheme.gold, size: 24),
-          const SizedBox(width: 8),
-          Text(
-            'Serigne Sam Mbaye',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: AppTheme.primary,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: const Icon(Icons.auto_stories_rounded, color: AppTheme.gold, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('As-salâm aleykoum',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text('Serigne Sam Mbaye',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700, height: 1.1)),
+              ],
+            ),
           ),
         ],
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_outlined),
+          icon: const Icon(Icons.notifications_none_rounded),
           tooltip: 'Notifications',
           onPressed: () => context.push('/notifications'),
         ),
@@ -96,98 +125,85 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Rechercher',
           onPressed: () => context.go('/recherche'),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppSpacing.xs),
+      ],
+    );
+  }
+
+  Widget _buildLoading() {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: AppSpacing.md),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: SkeletonBox(height: 120, radius: AppRadius.md),
+        ),
+        SizedBox(height: AppSpacing.lg),
+        SkeletonAudioRail(),
+        SizedBox(height: AppSpacing.lg),
+        SkeletonGrid(),
       ],
     );
   }
 
   Widget _buildContent(_HomeData data) {
-    return SingleChildScrollView(
+    return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-
-          // Citation du jour
-          if (data.citation != null) ...[
-            _SectionHeader(
-              title: 'Citation du jour',
-              showVoirTout: false,
-            ),
-            CitationCard(citation: data.citation!),
-            const SizedBox(height: 8),
-          ],
-
-          // Biographie (carte de navigation)
-          _BiographieNavCard(onTap: () => context.push('/biographie')),
-
-          // Derniers audios
-          _SectionHeader(
-            title: 'Derniers audios',
-            onVoirTout: () => context.go('/audios'),
-          ),
-          if (data.audios.isEmpty)
-            _buildEmpty('Aucun audio disponible')
-          else
-            _AudiosSection(audios: data.audios),
-
-          const SizedBox(height: 8),
-
-          // Dernières vidéos
-          _SectionHeader(
-            title: 'Dernières vidéos',
-            onVoirTout: () => context.go('/videos'),
-          ),
-          if (data.videos.isEmpty)
-            _buildEmpty('Aucune vidéo disponible')
-          else
-            _VideosGrid(videos: data.videos),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildError() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.wifi_off_rounded,
-              color: AppTheme.textSecondary, size: 56),
-          const SizedBox(height: 16),
-          Text('Impossible de charger le contenu',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.textSecondary)),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Réessayer'),
-            onPressed: _refresh,
+      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+      children: [
+        const SizedBox(height: AppSpacing.sm),
+        if (data.citation != null)
+          FadeSlideIn(child: CitationCard(citation: data.citation!)),
+        FadeSlideIn(
+          delay: const Duration(milliseconds: 60),
+          child: _BiographieNavCard(onTap: () => context.push('/biographie')),
+        ),
+        if (data.albums.isNotEmpty) ...[
+          _SectionHeader(title: 'Albums'),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 90),
+            child: _AlbumsRail(albums: data.albums),
           ),
         ],
-      ),
+        _SectionHeader(title: 'Derniers audios', onVoirTout: () => context.go('/audios')),
+        if (data.audios.isEmpty)
+          _empty('Aucun audio disponible')
+        else
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 120),
+            child: _AudiosRail(audios: data.audios),
+          ),
+        const SizedBox(height: AppSpacing.sm),
+        _SectionHeader(title: 'Dernières vidéos', onVoirTout: () => context.go('/videos')),
+        if (data.videos.isEmpty)
+          _empty('Aucune vidéo disponible')
+        else
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 150),
+            child: _VideosGrid(videos: data.videos),
+          ),
+      ],
     );
   }
 
-  Widget _buildEmpty(String message) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: Text(message,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary)),
-    );
-  }
+  Widget _empty(String message) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+        child: Text(message,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      );
 }
 
 class _HomeData {
   final CitationModel? citation;
+  final List<AlbumModel> albums;
   final List<AudioModel> audios;
   final List<VideoModel> videos;
 
   const _HomeData({
     required this.citation,
+    required this.albums,
     required this.audios,
     required this.videos,
   });
@@ -196,55 +212,66 @@ class _HomeData {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback? onVoirTout;
-  final bool showVoirTout;
 
-  const _SectionHeader({
-    required this.title,
-    this.onVoirTout,
-    this.showVoirTout = true,
-  });
+  const _SectionHeader({required this.title, this.onVoirTout});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.lg, AppSpacing.sm, AppSpacing.sm),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-            ),
+            child: Text(title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700)),
           ),
-          if (showVoirTout && onVoirTout != null)
-            TextButton(
-              onPressed: onVoirTout,
-              child: const Text('Voir tout',
-                  style: TextStyle(color: AppTheme.primary, fontSize: 13)),
-            ),
+          if (onVoirTout != null)
+            TextButton(onPressed: onVoirTout, child: const Text('Voir tout')),
         ],
       ),
     );
   }
 }
 
-class _AudiosSection extends StatelessWidget {
-  final List<AudioModel> audios;
-
-  const _AudiosSection({required this.audios});
+class _AlbumsRail extends StatelessWidget {
+  final List<AlbumModel> albums;
+  const _AlbumsRail({required this.albums});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 186,
+      height: 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        itemCount: albums.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+        itemBuilder: (context, i) => AlbumCard(
+          album: albums[i],
+          onTap: () => context.push('/albums/${albums[i].id}', extra: albums[i].titre),
+        ),
+      ),
+    );
+  }
+}
+
+class _AudiosRail extends StatelessWidget {
+  final List<AudioModel> audios;
+  const _AudiosRail({required this.audios});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 188,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         itemCount: audios.length,
-        itemBuilder: (context, i) => AudioCard(audio: audios[i]),
+        itemBuilder: (context, i) => AudioCard(
+          audio: audios[i],
+          onTap: () => context.push('/audios/lecteur', extra: audios[i]),
+        ),
       ),
     );
   }
@@ -252,20 +279,19 @@ class _AudiosSection extends StatelessWidget {
 
 class _VideosGrid extends StatelessWidget {
   final List<VideoModel> videos;
-
   const _VideosGrid({required this.videos});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: AppSpacing.sm,
+          mainAxisSpacing: AppSpacing.sm,
           childAspectRatio: 0.82,
         ),
         itemCount: videos.length,
@@ -284,22 +310,16 @@ class _BiographieNavCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        margin: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppTheme.primary, Color(0xFF1A5C44)],
+            colors: [AppTheme.primary, AppTheme.primaryLight],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primary.withValues(alpha: 0.35),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          boxShadow: AppTheme.softShadow(0.18),
         ),
         child: Row(
           children: [
@@ -307,34 +327,24 @@ class _BiographieNavCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Icon(Icons.menu_book_rounded,
-                  color: AppTheme.gold, size: 26),
+              child: const Icon(Icons.menu_book_rounded, color: AppTheme.gold, size: 24),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Biographie',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  Text(
-                    'Vie et enseignements de Serigne Sam Mbaye',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
-                        ),
-                  ),
+                  const Text('Biographie',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('Vie et enseignements',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12.5)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: AppTheme.gold, size: 16),
+            const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.gold, size: 15),
           ],
         ),
       ),

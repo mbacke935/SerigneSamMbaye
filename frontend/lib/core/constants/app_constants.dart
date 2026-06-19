@@ -18,6 +18,7 @@ class AppConstants {
   static const String meEndpoint           = '/users/me/';
 
   static const String biographiesEndpoint  = '/biographies/';
+  static const String albumsEndpoint        = '/albums/';
   static const String audiosEndpoint       = '/audios/';
   static const String videosEndpoint       = '/videos/';
   static const String citationsEndpoint    = '/citations/';
