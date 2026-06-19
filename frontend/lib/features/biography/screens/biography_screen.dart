@@ -167,13 +167,15 @@ class _BiographyScreenState extends State<BiographyScreen> {
                   'Serigne Sam Mbaye',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.gold
+                            : AppTheme.primary,
                       ),
                 ),
                 Text(
                   'Érudit · Guide spirituel · Éducateur',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         letterSpacing: 0.3,
                       ),
                 ),
@@ -194,6 +196,9 @@ class _BiographySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final accent = isDark ? AppTheme.gold : AppTheme.primary;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(
@@ -202,32 +207,32 @@ class _BiographySection extends StatelessWidget {
           // Section title
           Row(
             children: [
-              const Icon(Icons.bookmark_rounded,
-                  color: AppTheme.gold, size: 18),
+              const Icon(Icons.bookmark_rounded, color: AppTheme.gold, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   biographie.titre,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
+                        color: accent,
                       ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Section content
+          // Section content (serif pour une lecture confortable)
           Text(
             biographie.contenu,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textPrimary,
-                  height: 1.8,
-                ),
+            style: AppTheme.serif(
+              fontSize: 15.5,
+              color: scheme.onSurface,
+              height: 1.85,
+            ),
           ),
           if (!isLast) ...[
             const SizedBox(height: 24),
-            const Divider(color: Color(0xFFE5E7EB)),
+            Divider(color: scheme.outline),
           ],
         ],
       ),

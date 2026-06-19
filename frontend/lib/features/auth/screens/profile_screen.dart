@@ -131,21 +131,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildInfoTile(IconData icon, String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: scheme.outline),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppTheme.primary, size: 20),
+          Icon(icon, color: scheme.brightness == Brightness.dark ? AppTheme.gold : AppTheme.primary, size: 20),
           const SizedBox(width: 12),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ]),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ]),
+          ),
         ],
       ),
     );

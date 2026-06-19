@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/models/audio_model.dart';
 import '../core/theme/app_theme.dart';
+import 'equalizer_bars.dart';
 
 class AudioListTile extends StatelessWidget {
   final AudioModel audio;
@@ -20,89 +21,85 @@ class AudioListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        decoration: BoxDecoration(
-          color: isCurrentlyPlaying
-              ? AppTheme.primary.withValues(alpha: 0.06)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: isCurrentlyPlaying
-              ? Border.all(color: AppTheme.primary.withValues(alpha: 0.25))
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 5),
+      child: Material(
+        color: isCurrentlyPlaying
+            ? AppTheme.primary.withValues(alpha: 0.08)
+            : scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: isCurrentlyPlaying
+                  ? Border.all(color: AppTheme.primary.withValues(alpha: 0.3))
+                  : Border.all(color: scheme.outline),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              // Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: _buildThumbnail(),
-              ),
-              const SizedBox(width: 14),
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      audio.titre,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: isCurrentlyPlaying
-                                ? AppTheme.primary
-                                : AppTheme.textPrimary,
-                          ),
-                    ),
-                    if (audio.dureeFormatee.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (isCurrentlyPlaying) ...[
-                            const Icon(Icons.equalizer_rounded,
-                                color: AppTheme.primary, size: 14),
-                            const SizedBox(width: 4),
-                          ],
-                          Text(
-                            audio.dureeFormatee,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(color: AppTheme.textSecondary),
-                          ),
-                        ],
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2, vertical: AppSpacing.sm + 2),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: _buildThumbnail(),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        audio.titre,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isCurrentlyPlaying ? AppTheme.primary : scheme.onSurface,
+                            ),
                       ),
+                      if (audio.dureeFormatee.isNotEmpty || isCurrentlyPlaying) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            if (isCurrentlyPlaying) ...[
+                              const EqualizerBars(
+                                playing: true,
+                                color: AppTheme.primary,
+                                barCount: 3,
+                                height: 12,
+                                barWidth: 2.5,
+                                spacing: 2,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              audio.dureeFormatee.isNotEmpty ? audio.dureeFormatee : 'Audio',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              // Favoris button
-              if (onFavoriTap != null)
-                IconButton(
-                  icon: Icon(
-                    isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: isFavorited ? const Color(0xFFE53935) : AppTheme.textSecondary,
-                    size: 20,
                   ),
-                  onPressed: onFavoriTap,
-                  tooltip: isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris',
                 ),
-              // Play icon
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppTheme.textSecondary, size: 22),
-            ],
+                if (onFavoriTap != null)
+                  IconButton(
+                    icon: Icon(
+                      isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      color: isFavorited ? const Color(0xFFE53935) : scheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    onPressed: onFavoriTap,
+                  ),
+                Icon(Icons.play_circle_fill_rounded,
+                    color: isCurrentlyPlaying ? AppTheme.primary : AppTheme.gold, size: 30),
+              ],
+            ),
           ),
         ),
       ),
@@ -113,8 +110,8 @@ class AudioListTile extends StatelessWidget {
     if (audio.imageMiniature != null && audio.imageMiniature!.isNotEmpty) {
       return Image.network(
         audio.imageMiniature!,
-        width: 56,
-        height: 56,
+        width: 54,
+        height: 54,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _placeholder(),
       );
@@ -124,11 +121,10 @@ class AudioListTile extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      width: 56,
-      height: 56,
+      width: 54,
+      height: 54,
       color: AppTheme.primary.withValues(alpha: 0.08),
-      child: const Icon(Icons.headphones_rounded,
-          color: AppTheme.primary, size: 26),
+      child: const Icon(Icons.headphones_rounded, color: AppTheme.primary, size: 24),
     );
   }
 }

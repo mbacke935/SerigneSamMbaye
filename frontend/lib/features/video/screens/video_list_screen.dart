@@ -4,6 +4,9 @@ import '../../../core/models/video_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/content_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/app_states.dart';
+import '../../../widgets/search_field.dart';
+import '../../../widgets/skeleton.dart';
 import '../../../widgets/video_card.dart';
 
 class VideoListScreen extends StatefulWidget {
@@ -51,8 +54,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
       _filteredVideos = query.isEmpty
           ? _allVideos
           : _allVideos
-              .where((v) =>
-                  v.titre.toLowerCase().contains(query.toLowerCase()))
+              .where((v) => v.titre.toLowerCase().contains(query.toLowerCase()))
               .toList();
     });
   }
@@ -63,70 +65,32 @@ class _VideoListScreenState extends State<VideoListScreen> {
       appBar: AppBar(title: const Text('Vidéos')),
       body: Column(
         children: [
-          _buildSearchBar(),
+          SearchField(controller: _searchCtrl, hint: 'Rechercher une vidéo…', onChanged: _search),
           Expanded(child: _buildGrid()),
         ],
       ),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: TextField(
-        controller: _searchCtrl,
-        onChanged: _search,
-        decoration: InputDecoration(
-          hintText: 'Rechercher une vidéo...',
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: _searchCtrl.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear_rounded),
-                  onPressed: () {
-                    _searchCtrl.clear();
-                    _search('');
-                  },
-                )
-              : null,
-        ),
-      ),
-    );
-  }
-
   Widget _buildGrid() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const SkeletonGrid(count: 6);
 
     if (_filteredVideos.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.videocam_off_outlined,
-                size: 64, color: AppTheme.textSecondary),
-            const SizedBox(height: 16),
-            Text(
-              _searchCtrl.text.isEmpty
-                  ? 'Aucune vidéo disponible'
-                  : 'Aucun résultat pour "${_searchCtrl.text}"',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
+      return EmptyState(
+        icon: Icons.videocam_off_outlined,
+        message: _searchCtrl.text.isEmpty ? 'Aucune vidéo disponible' : 'Aucun résultat',
+        hint: _searchCtrl.text.isEmpty ? null : 'pour « ${_searchCtrl.text} »',
       );
     }
 
     return RefreshIndicator(
-      color: AppTheme.primary,
       onRefresh: _load,
       child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xl),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: AppSpacing.sm,
+          mainAxisSpacing: AppSpacing.sm,
           childAspectRatio: 0.78,
         ),
         itemCount: _filteredVideos.length,

@@ -7,7 +7,10 @@ import '../../../core/services/content_service.dart';
 import '../../../core/services/favori_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/app_states.dart';
 import '../../../widgets/audio_list_tile.dart';
+import '../../../widgets/search_field.dart';
+import '../../../widgets/skeleton.dart';
 
 class AudioListScreen extends StatefulWidget {
   const AudioListScreen({super.key});
@@ -66,8 +69,7 @@ class _AudioListScreenState extends State<AudioListScreen> {
       _filteredAudios = query.isEmpty
           ? _allAudios
           : _allAudios
-              .where((a) =>
-                  a.titre.toLowerCase().contains(query.toLowerCase()))
+              .where((a) => a.titre.toLowerCase().contains(query.toLowerCase()))
               .toList();
     });
   }
@@ -80,9 +82,7 @@ class _AudioListScreenState extends State<AudioListScreen> {
         SnackBar(
           content: const Text('Connectez-vous pour sauvegarder des favoris.'),
           action: SnackBarAction(
-            label: 'Connexion',
-            onPressed: () => context.go('/connexion'),
-          ),
+              label: 'Connexion', onPressed: () => context.go('/connexion')),
         ),
       );
       return;
@@ -105,58 +105,23 @@ class _AudioListScreenState extends State<AudioListScreen> {
       appBar: AppBar(title: const Text('Audios')),
       body: Column(
         children: [
-          _buildSearchBar(),
+          SearchField(controller: _searchCtrl, hint: 'Rechercher un audio…', onChanged: _search),
           Expanded(child: _buildList()),
         ],
       ),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: TextField(
-        controller: _searchCtrl,
-        onChanged: _search,
-        decoration: InputDecoration(
-          hintText: 'Rechercher un audio...',
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: _searchCtrl.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear_rounded),
-                  onPressed: () {
-                    _searchCtrl.clear();
-                    _search('');
-                  },
-                )
-              : null,
-        ),
-      ),
-    );
-  }
-
   Widget _buildList() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const SkeletonList();
 
     if (_filteredAudios.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.headphones_outlined,
-                size: 64, color: AppTheme.textSecondary),
-            const SizedBox(height: 16),
-            Text(
-              _searchCtrl.text.isEmpty
-                  ? 'Aucun audio disponible'
-                  : 'Aucun résultat pour "${_searchCtrl.text}"',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
+      return EmptyState(
+        icon: Icons.headphones_outlined,
+        message: _searchCtrl.text.isEmpty
+            ? 'Aucun audio disponible'
+            : 'Aucun résultat',
+        hint: _searchCtrl.text.isEmpty ? null : 'pour « ${_searchCtrl.text} »',
       );
     }
 
@@ -164,10 +129,9 @@ class _AudioListScreenState extends State<AudioListScreen> {
       valueListenable: _playerService.currentAudioListenable,
       builder: (context, currentAudio, _) {
         return RefreshIndicator(
-          color: AppTheme.primary,
           onRefresh: _load,
           child: ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             itemCount: _filteredAudios.length,
             itemBuilder: (context, i) {
               final audio = _filteredAudios[i];
@@ -185,3 +149,4 @@ class _AudioListScreenState extends State<AudioListScreen> {
     );
   }
 }
+

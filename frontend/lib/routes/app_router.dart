@@ -13,6 +13,7 @@ import '../features/video/screens/video_list_screen.dart';
 import '../features/video/screens/video_player_screen.dart';
 import '../features/albums/screens/album_detail_screen.dart';
 import '../features/biography/screens/biography_screen.dart';
+import '../features/citations/screens/citation_reader_screen.dart';
 import '../features/citations/screens/citations_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
 import '../features/search/screens/search_screen.dart';
@@ -78,6 +79,19 @@ class AppRouter {
           final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
           final titre = state.extra is String ? state.extra as String : null;
           return AlbumDetailScreen(albumId: id, titre: titre);
+        },
+      ),
+      // Lecture plein écran des citations (hors shell)
+      GoRoute(
+        path: '/citations/lecture',
+        name: 'citationReader',
+        builder: (context, state) {
+          final args = state.extra as CitationReaderArgs?;
+          if (args == null) return const _PlaceholderScreen(title: 'Citations');
+          return CitationReaderScreen(
+            citations: args.citations,
+            initialIndex: args.initialIndex,
+          );
         },
       ),
       // Lecteur vidéo (plein écran, sans bottom nav)
