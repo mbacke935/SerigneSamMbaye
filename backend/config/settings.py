@@ -159,6 +159,13 @@ else:
     # Config absente ou incomplète → on désactive proprement (vidéos sur R2).
     USE_CLOUDINARY = False
 
+# --- Compression audio (ffmpeg) ---
+# DÉSACTIVÉE par défaut : sur l'offre gratuite Render (512 Mo), le transcodage
+# synchrone d'un audio un peu lourd fait tuer le worker par l'OOM killer (SIGKILL,
+# non rattrapable) → upload en erreur 500. À n'activer que sur un environnement
+# disposant de assez de RAM/CPU (ou en local).
+COMPRESS_AUDIO = config('COMPRESS_AUDIO', default=False, cast=bool)
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'

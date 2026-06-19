@@ -21,3 +21,7 @@ MEDIA_ROOT = tempfile.mkdtemp()
 
 # Désactiver le hachage de mots de passe lent en tests
 PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
+# Activer la compression audio en tests pour valider la fonctionnalité
+# (en production elle reste désactivée par défaut — trop lourde pour Render gratuit).
+COMPRESS_AUDIO = True

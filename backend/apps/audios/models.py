@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from config.media_processing import compress_audio, is_new_upload
@@ -23,9 +24,10 @@ class Audio(models.Model):
         ordering = ['-date_publication']
 
     def save(self, *args, **kwargs):
-        # Compresse uniquement les fichiers fraîchement téléversés ; une simple
-        # modification du titre ne déclenche pas de ré-encodage.
-        if is_new_upload(self.fichier):
+        # Compresse uniquement si activé (COMPRESS_AUDIO) ET fichier fraîchement
+        # téléversé. Désactivé par défaut car trop lourd pour Render gratuit
+        # (le worker se fait tuer par l'OOM killer → upload en 500).
+        if getattr(settings, 'COMPRESS_AUDIO', False) and is_new_upload(self.fichier):
             compressed = compress_audio(self.fichier)
             if compressed is not None:
                 self.fichier = compressed

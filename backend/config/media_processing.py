@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 # enregistrements parlés et divise la taille par ~3 à 4 par rapport à du stéréo 256k.
 AUDIO_BITRATE = '64k'
 # Garde-fou : au-delà de cette taille on saute la compression synchrone pour ne
-# pas risquer un timeout (l'encodage audio reste rapide, mais on borne le pire cas).
-MAX_INPUT_BYTES = 200 * 1024 * 1024  # 200 Mo
+# pas risquer un timeout / OOM (même quand COMPRESS_AUDIO est activé).
+MAX_INPUT_BYTES = 30 * 1024 * 1024  # 30 Mo
 
 
 def is_new_upload(filefield) -> bool:
