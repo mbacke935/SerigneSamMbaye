@@ -166,13 +166,33 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       stream: _playerService.playerStateStream,
       builder: (context, snapshot) {
         final isPlaying = snapshot.data?.playing ?? false;
-        return EqualizerBars(
-          playing: isPlaying,
-          color: AppTheme.gold,
-          barCount: 7,
-          height: 26,
-          barWidth: 4,
-          spacing: 5,
+        return Container(
+          height: 56,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPlaying ? Icons.graphic_eq_rounded : Icons.equalizer_rounded,
+                color: AppTheme.gold.withValues(alpha: 0.8),
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              EqualizerBars(
+                playing: isPlaying,
+                color: AppTheme.gold,
+                barCount: 9,
+                height: 30,
+                barWidth: 5,
+                spacing: 6,
+              ),
+            ],
+          ),
         );
       },
     );
