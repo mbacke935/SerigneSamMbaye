@@ -140,15 +140,24 @@ if USE_R2:
 
 # --- Cloudinary (compression vidéo, optionnel) ---
 # Désactivé par défaut : tant que USE_CLOUDINARY=False, les vidéos restent sur R2.
+# IMPORTANT : on n'active Cloudinary QUE si les 3 identifiants sont présents.
+# Une config incomplète ne doit jamais empêcher le démarrage de l'app (sinon
+# l'admin devient inaccessible et plus aucun upload n'est possible).
 USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
+CLOUDINARY_CLOUD_NAME = config('CLOUDINARY_CLOUD_NAME', default='')
+CLOUDINARY_API_KEY = config('CLOUDINARY_API_KEY', default='')
+CLOUDINARY_API_SECRET = config('CLOUDINARY_API_SECRET', default='')
 
-if USE_CLOUDINARY:
+if USE_CLOUDINARY and CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
     INSTALLED_APPS += ['cloudinary', 'cloudinary_storage']
     CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': config('CLOUDINARY_API_KEY'),
-        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
+        'API_KEY': CLOUDINARY_API_KEY,
+        'API_SECRET': CLOUDINARY_API_SECRET,
     }
+else:
+    # Config absente ou incomplète → on désactive proprement (vidéos sur R2).
+    USE_CLOUDINARY = False
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
