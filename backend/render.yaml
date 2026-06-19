@@ -40,3 +40,13 @@ services:
         value: https://serigne-sam-mbaye.pages.dev
       - key: FIREBASE_CREDENTIALS_JSON
         sync: false
+      # Compression vidéo Cloudinary — passer USE_CLOUDINARY à "True" et renseigner
+      # les 3 clés pour activer (sinon les vidéos restent sur R2).
+      - key: USE_CLOUDINARY
+        value: "False"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
