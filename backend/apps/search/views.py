@@ -1,4 +1,6 @@
 from django.db.models import Q
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,6 +18,17 @@ from apps.videos.serializers import VideoSerializer
 class SearchView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='q',
+                type=OpenApiTypes.STR,
+                description='Terme de recherche (minimum 2 caractères).',
+                required=True,
+            )
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
     def get(self, request):
         query = request.query_params.get('q', '').strip()
         if len(query) < 2:

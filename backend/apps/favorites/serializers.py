@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.contrib.contenttypes.models import ContentType
+from drf_spectacular.utils import extend_schema_field
 from .models import Favori
 
 
@@ -12,9 +12,11 @@ class FavoriSerializer(serializers.ModelSerializer):
         fields = ['id', 'content_type', 'object_id', 'type_contenu', 'objet', 'date_ajout']
         read_only_fields = ['date_ajout', 'type_contenu', 'objet']
 
-    def get_type_contenu(self, obj):
+    @extend_schema_field(serializers.CharField())
+    def get_type_contenu(self, obj) -> str:
         return obj.content_type.model
 
+    @extend_schema_field(serializers.DictField(allow_null=True))
     def get_objet(self, obj):
         # Lazy imports to avoid circular dependencies
         from apps.audios.serializers import AudioSerializer

@@ -65,13 +65,13 @@ class CitationAPITest(APITestCase):
         self.assertEqual(response.data['count'], 2)
 
     def test_citation_du_jour(self):
-        response = self.client.get('/api/citations/du-jour/')
+        response = self.client.get('/api/citations/du_jour/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['texte'], 'Citation publiée')
 
     def test_citation_du_jour_sans_donnees(self):
         Citation.objects.all().delete()
-        response = self.client.get('/api/citations/du-jour/')
+        response = self.client.get('/api/citations/du_jour/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_creation_sans_auth_interdit(self):

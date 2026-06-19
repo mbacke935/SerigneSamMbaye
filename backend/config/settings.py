@@ -162,15 +162,28 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000').split(',')
+# Autorise le domaine canonique ET toutes les URLs de déploiement Cloudflare
+# Pages (<hash>.serigne-sam-mbaye.pages.dev) générées par chaque `wrangler deploy`.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://([a-z0-9-]+\.)?serigne-sam-mbaye\.pages\.dev$",
+]
 if DEBUG:
+    # En développement local uniquement : autorise toutes les origines.
     CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000').split(',')
-    # Autorise le domaine canonique ET toutes les URLs de déploiement Cloudflare
-    # Pages (<hash>.serigne-sam-mbaye.pages.dev) générées par chaque `wrangler deploy`.
-    CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^https://([a-z0-9-]+\.)?serigne-sam-mbaye\.pages\.dev$",
-    ]
+
+# --- Durcissement sécurité (production uniquement) ---
+if not DEBUG:
+    # Render termine le TLS en amont et transmet le protocole d'origine via cet en-tête.
+    # Indispensable avant d'activer SECURE_SSL_REDIRECT pour éviter une boucle de redirection.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 an
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Serigne Sam Mbaye API',

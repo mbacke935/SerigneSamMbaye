@@ -18,8 +18,14 @@ _TYPE_MAP = {
 class FavoriViewSet(ModelViewSet):
     serializer_class = FavoriSerializer
     permission_classes = [IsAuthenticated]
+    # Permet à drf-spectacular d'inférer le modèle/type du paramètre d'URL.
+    # get_queryset() reste la source de vérité et filtre par utilisateur.
+    queryset = Favori.objects.all()
 
     def get_queryset(self):
+        # Anonyme lors de la génération du schéma : éviter une erreur d'introspection.
+        if getattr(self, 'swagger_fake_view', False) or not self.request.user.is_authenticated:
+            return Favori.objects.none()
         return Favori.objects.filter(user=self.request.user)
 
     @action(detail=False, methods=['post'], url_path='toggle')

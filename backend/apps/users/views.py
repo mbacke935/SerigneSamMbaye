@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from .serializers import RegisterSerializer, UserSerializer
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(request=RegisterSerializer, responses=UserSerializer)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -20,9 +22,11 @@ class RegisterView(APIView):
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=UserSerializer)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
+    @extend_schema(request=UserSerializer, responses=UserSerializer)
     def patch(self, request):
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
