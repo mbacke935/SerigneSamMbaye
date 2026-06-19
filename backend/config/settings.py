@@ -137,6 +137,18 @@ if USE_R2:
     else:
         MEDIA_URL = f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com/{config("R2_BUCKET_NAME")}/media/'
 
+# --- Cloudinary (compression vidéo, optionnel) ---
+# Désactivé par défaut : tant que USE_CLOUDINARY=False, les vidéos restent sur R2.
+USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
+
+if USE_CLOUDINARY:
+    INSTALLED_APPS += ['cloudinary', 'cloudinary_storage']
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': config('CLOUDINARY_API_KEY'),
+        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+    }
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'

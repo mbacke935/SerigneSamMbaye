@@ -1,3 +1,9 @@
+import os
+import subprocess
+import tempfile
+
+import imageio_ffmpeg
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -67,3 +73,54 @@ class AudioAPITest(APITestCase):
     def test_detail_audio_publie_accessible(self):
         response = self.client.get(f'/api/audios/{self.publie.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class AudioCompressionTest(TestCase):
+    """Compression automatique de l'audio à l'upload."""
+
+    @staticmethod
+    def _generer_mp3(bitrate='256k', duree=20):
+        ff = imageio_ffmpeg.get_ffmpeg_exe()
+        tmp = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
+        tmp.close()
+        subprocess.run(
+            [ff, '-y', '-f', 'lavfi', '-i', f'sine=frequency=440:duration={duree}',
+             '-ac', '2', '-b:a', bitrate, tmp.name],
+            check=True, capture_output=True,
+        )
+        with open(tmp.name, 'rb') as f:
+            data = f.read()
+        os.remove(tmp.name)
+        return data
+
+    def test_audio_compresse_a_lupload(self):
+        brut = self._generer_mp3('256k')
+        upload = SimpleUploadedFile('conference.mp3', brut, content_type='audio/mpeg')
+        audio = Audio.objects.create(
+            titre='Conférence',
+            fichier=upload,
+            date_publication=timezone.now(),
+            is_published=True,
+        )
+        audio.refresh_from_db()
+        # Le fichier stocké doit être nettement plus petit que l'original 256k stéréo.
+        self.assertLess(audio.fichier.size, len(brut))
+        self.assertTrue(audio.fichier.name.endswith('.mp3'))
+
+    def test_modification_titre_ne_recompresse_pas(self):
+        brut = self._generer_mp3('256k')
+        upload = SimpleUploadedFile('cours.mp3', brut, content_type='audio/mpeg')
+        audio = Audio.objects.create(
+            titre='Cours',
+            fichier=upload,
+            date_publication=timezone.now(),
+        )
+        nom_apres_upload = audio.fichier.name
+        taille_apres_upload = audio.fichier.size
+
+        # Une simple édition de titre ne doit ni recompresser ni changer le fichier.
+        audio.titre = 'Cours (corrigé)'
+        audio.save()
+        audio.refresh_from_db()
+        self.assertEqual(audio.fichier.name, nom_apres_upload)
+        self.assertEqual(audio.fichier.size, taille_apres_upload)

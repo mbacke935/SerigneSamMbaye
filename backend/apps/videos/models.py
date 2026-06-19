@@ -1,10 +1,12 @@
 from django.db import models
 
+from config.storage import video_storage
+
 
 class Video(models.Model):
     titre = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    fichier = models.FileField(upload_to='videos/')
+    fichier = models.FileField(upload_to='videos/', storage=video_storage)
     image_miniature = models.ImageField(upload_to='miniatures/videos/', blank=True, null=True)
     duree = models.DurationField(blank=True, null=True)
     date_publication = models.DateTimeField()
