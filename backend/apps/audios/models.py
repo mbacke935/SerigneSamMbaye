@@ -8,6 +8,10 @@ class Audio(models.Model):
     description = models.TextField(blank=True)
     fichier = models.FileField(upload_to='audios/')
     image_miniature = models.ImageField(upload_to='miniatures/audios/', blank=True, null=True)
+    album = models.ForeignKey(
+        'albums.Album', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='audios',
+    )
     duree = models.DurationField(blank=True, null=True)
     date_publication = models.DateTimeField()
     is_published = models.BooleanField(default=False)

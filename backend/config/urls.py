@@ -19,6 +19,7 @@ urlpatterns = [
 
     # API endpoints
     path('api/users/', include('apps.users.urls')),
+    path('api/albums/', include('apps.albums.urls')),
     path('api/biographies/', include('apps.biographies.urls')),
     path('api/audios/', include('apps.audios.urls')),
     path('api/videos/', include('apps.videos.urls')),

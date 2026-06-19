@@ -12,8 +12,11 @@ class ApiClient {
   ApiClient() {
     _dio = Dio(BaseOptions(
       baseUrl: AppConstants.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
+      // Render (offre gratuite) se met en veille après 15 min : un démarrage à
+      // froid peut prendre 30-60s. Des timeouts généreux évitent de faux échecs.
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ));
 
@@ -26,7 +29,11 @@ class ApiClient {
         handler.next(options);
       },
       onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
+        final path = error.requestOptions.path;
+        // Ne pas tenter de rafraîchir sur les endpoints d'authentification eux-mêmes
+        // (un 401 y signifie « identifiants invalides », pas « token expiré »).
+        final isAuthEndpoint = path.contains('/token');
+        if (error.response?.statusCode == 401 && !isAuthEndpoint) {
           final refreshed = await _refreshToken();
           if (refreshed) {
             final token = await _storage.read(key: _accessTokenKey);

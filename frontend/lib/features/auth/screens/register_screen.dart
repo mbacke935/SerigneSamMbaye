@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/auth_scaffold.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -34,21 +35,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _errorMessage = null; });
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
     try {
-      await _authService.register(
-        _emailCtrl.text.trim(),
-        _usernameCtrl.text.trim(),
-        _passwordCtrl.text,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Compte créé ! Veuillez vous connecter.')),
-        );
-        context.go('/connexion');
+      await _authService.register(email, _usernameCtrl.text.trim(), password);
+      // Auto-connexion pour éviter une re-saisie : on enchaîne directement.
+      try {
+        await _authService.login(email, password);
+        if (mounted) context.go('/profil');
+      } on AuthException {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Compte créé ! Connectez-vous.')),
+          );
+          context.go('/connexion');
+        }
       }
-    } catch (e) {
-      setState(() => _errorMessage = 'Inscription impossible. Vérifiez vos informations.');
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _errorMessage = 'Une erreur est survenue. Réessayez.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -56,103 +67,95 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(onPressed: () => context.go('/connexion')),
-        title: const Text('Créer un compte'),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Inscription',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                Text('Créez un compte pour sauvegarder vos favoris',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary)),
-                const SizedBox(height: 32),
-                if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.errorColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.error_outline,
-                          color: AppTheme.errorColor, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(_errorMessage!,
-                          style: const TextStyle(color: AppTheme.errorColor))),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                TextFormField(
-                  controller: _usernameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom d\'utilisateur',
-                    prefixIcon: Icon(Icons.person_outlined),
-                  ),
-                  validator: (v) => (v == null || v.trim().length < 3)
-                      ? 'Au moins 3 caractères' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (v) =>
-                      (v == null || !v.contains('@')) ? 'Email invalide' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Mot de passe',
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                  ),
-                  validator: (v) => (v == null || v.length < 8)
-                      ? 'Au moins 8 caractères' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _confirmCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirmer le mot de passe',
-                    prefixIcon: Icon(Icons.lock_outlined),
-                  ),
-                  validator: (v) => v != _passwordCtrl.text
-                      ? 'Les mots de passe ne correspondent pas' : null,
-                ),
-                const SizedBox(height: 32),
-                _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _register,
-                        child: const Text('Créer mon compte'),
-                      ),
-              ],
+    return AuthScaffold(
+      showBack: true,
+      title: 'Créer un compte',
+      subtitle: 'Sauvegardez vos audios, vidéos et citations favoris.',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_errorMessage != null) ...[
+              AuthErrorBanner(message: _errorMessage!),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            TextFormField(
+              controller: _usernameCtrl,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Nom d\'utilisateur',
+                prefixIcon: Icon(Icons.person_outline_rounded),
+              ),
+              validator: (v) => (v == null || v.trim().length < 3)
+                  ? 'Au moins 3 caractères'
+                  : null,
             ),
-          ),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+              validator: (v) =>
+                  (v == null || !v.contains('@')) ? 'Email invalide' : null,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _passwordCtrl,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: 'Mot de passe',
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              validator: (v) =>
+                  (v == null || v.length < 8) ? 'Au moins 8 caractères' : null,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _confirmCtrl,
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _register(),
+              decoration: const InputDecoration(
+                labelText: 'Confirmer le mot de passe',
+                prefixIcon: Icon(Icons.lock_outline_rounded),
+              ),
+              validator: (v) => v != _passwordCtrl.text
+                  ? 'Les mots de passe ne correspondent pas'
+                  : null,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            FilledButton(
+              onPressed: _loading ? null : _register,
+              child: _loading
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        ),
+                        SizedBox(width: AppSpacing.sm),
+                        Text('Création…'),
+                      ],
+                    )
+                  : const Text('Créer mon compte'),
+            ),
+          ],
         ),
       ),
     );

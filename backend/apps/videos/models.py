@@ -8,6 +8,10 @@ class Video(models.Model):
     description = models.TextField(blank=True)
     fichier = models.FileField(upload_to='videos/', storage=video_storage)
     image_miniature = models.ImageField(upload_to='miniatures/videos/', blank=True, null=True)
+    album = models.ForeignKey(
+        'albums.Album', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='videos',
+    )
     duree = models.DurationField(blank=True, null=True)
     date_publication = models.DateTimeField()
     is_published = models.BooleanField(default=False)

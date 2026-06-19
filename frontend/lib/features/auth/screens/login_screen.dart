@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/auth_scaffold.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,12 +31,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _errorMessage = null; });
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
     try {
       await _authService.login(_emailCtrl.text.trim(), _passwordCtrl.text);
       if (mounted) context.go('/profil');
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Email ou mot de passe incorrect.');
+      if (mounted) setState(() => _errorMessage = 'Une erreur est survenue. Réessayez.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -43,136 +50,106 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(context),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return AuthScaffold(
+      title: 'Bon retour',
+      subtitle: 'Connectez-vous pour retrouver vos favoris.',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_errorMessage != null) ...[
+              AuthErrorBanner(message: _errorMessage!),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+              validator: (v) =>
+                  (v == null || !v.contains('@')) ? 'Email invalide' : null,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _passwordCtrl,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _login(),
+              decoration: InputDecoration(
+                labelText: 'Mot de passe',
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              validator: (v) =>
+                  (v == null || v.length < 6) ? 'Mot de passe trop court' : null,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            FilledButton(
+              onPressed: _loading ? null : _login,
+              child: _loading
+                  ? const _LoadingLabel(text: 'Connexion…')
+                  : const Text('Se connecter'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(
+              onPressed: _loading ? null : () => context.go('/'),
+              child: const Text('Continuer sans compte'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Center(
+              child: TextButton(
+                onPressed: () => context.go('/inscription'),
+                child: RichText(
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodyMedium,
                     children: [
-                      Text('Connexion',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      Text('Accédez à vos favoris et préférences',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary)),
-                      const SizedBox(height: 32),
-                      if (_errorMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.errorColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(children: [
-                            const Icon(Icons.error_outline,
-                                color: AppTheme.errorColor, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(_errorMessage!,
-                                style: const TextStyle(color: AppTheme.errorColor))),
-                          ]),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      TextFormField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Email invalide' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _passwordCtrl,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe',
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined),
-                            onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword),
-                          ),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.length < 6) ? 'Mot de passe trop court' : null,
-                      ),
-                      const SizedBox(height: 28),
-                      _loading
-                          ? const Center(child: CircularProgressIndicator())
-                          : ElevatedButton(
-                              onPressed: _login,
-                              child: const Text('Se connecter'),
-                            ),
-                      const SizedBox(height: 16),
-                      OutlinedButton(
-                        onPressed: () => context.go('/'),
-                        child: const Text('Continuer sans compte'),
-                      ),
-                      const SizedBox(height: 24),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => context.go('/inscription'),
-                          child: RichText(
-                            text: TextSpan(
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              children: const [
-                                TextSpan(text: 'Pas encore de compte ? '),
-                                TextSpan(
-                                  text: 'S\'inscrire',
-                                  style: TextStyle(
-                                      color: AppTheme.primary,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
+                      const TextSpan(text: 'Pas encore de compte ? '),
+                      TextSpan(
+                        text: 'S\'inscrire',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 180,
-      decoration: const BoxDecoration(
-        color: AppTheme.primary,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+class _LoadingLabel extends StatelessWidget {
+  final String text;
+  const _LoadingLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.auto_stories_rounded, color: AppTheme.gold, size: 48),
-          const SizedBox(height: 10),
-          Text('Serigne Sam Mbaye',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white, fontWeight: FontWeight.w700)),
-        ],
-      ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(text),
+      ],
     );
   }
 }

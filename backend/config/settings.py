@@ -28,6 +28,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.users',
+    'apps.albums',
     'apps.biographies',
     'apps.audios',
     'apps.videos',

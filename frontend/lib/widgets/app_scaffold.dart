@@ -10,53 +10,57 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const MiniPlayer(),
-          BottomNavigationBar(
-            currentIndex: navigationShell.currentIndex,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppTheme.primary,
-            unselectedItemColor: AppTheme.textSecondary,
-            selectedLabelStyle:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
-            unselectedLabelStyle: const TextStyle(fontSize: 11),
-            backgroundColor: Colors.white,
-            elevation: 12,
-            onTap: (index) => navigationShell.goBranch(
-              index,
-              initialLocation: index == navigationShell.currentIndex,
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.surfaceDark : AppTheme.surface,
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? AppTheme.outlineDark : AppTheme.outline,
+                  width: 1,
+                ),
+              ),
             ),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home_rounded),
-                label: 'Accueil',
+            child: NavigationBar(
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: (index) => navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.headphones_outlined),
-                activeIcon: Icon(Icons.headphones_rounded),
-                label: 'Audios',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.play_circle_outline_rounded),
-                activeIcon: Icon(Icons.play_circle_rounded),
-                label: 'Vidéos',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.format_quote_outlined),
-                activeIcon: Icon(Icons.format_quote_rounded),
-                label: 'Citations',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outlined),
-                activeIcon: Icon(Icons.person_rounded),
-                label: 'Profil',
-              ),
-            ],
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded),
+                  label: 'Accueil',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.headphones_outlined),
+                  selectedIcon: Icon(Icons.headphones_rounded),
+                  label: 'Audios',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.play_circle_outline_rounded),
+                  selectedIcon: Icon(Icons.play_circle_rounded),
+                  label: 'Vidéos',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.format_quote_outlined),
+                  selectedIcon: Icon(Icons.format_quote_rounded),
+                  label: 'Citations',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline_rounded),
+                  selectedIcon: Icon(Icons.person_rounded),
+                  label: 'Profil',
+                ),
+              ],
+            ),
           ),
         ],
       ),
