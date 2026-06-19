@@ -1,15 +1,13 @@
 from storages.backends.s3boto3 import S3Boto3Storage
 
 
-def video_storage():
-    """Stockage du champ vidéo, choisi à l'exécution.
+def _media_storage_for(media_kind: str):
+    """Choisit le stockage à l'exécution selon `USE_CLOUDINARY`.
 
-    - Si `USE_CLOUDINARY` est activé : les vidéos sont envoyées sur Cloudinary,
-      qui les compresse/optimise automatiquement (et soulage R2).
-    - Sinon : stockage par défaut (R2 en production, système de fichiers en test).
-
-    Passer un callable comme `storage=` permet de basculer sans toucher au modèle
-    ni régénérer de migration.
+    - Activé : Cloudinary, qui compresse/optimise automatiquement (et soulage R2).
+      L'audio comme la vidéo passent par le resource_type « video » de Cloudinary
+      (Cloudinary gère l'audio sous ce type).
+    - Désactivé : stockage par défaut (R2 en prod, système de fichiers en test).
     """
     from django.conf import settings
 
@@ -19,6 +17,16 @@ def video_storage():
 
     from django.core.files.storage import default_storage
     return default_storage
+
+
+def video_storage():
+    """Stockage du champ vidéo (Cloudinary si activé, sinon R2)."""
+    return _media_storage_for('video')
+
+
+def audio_storage():
+    """Stockage du champ audio (Cloudinary si activé, sinon R2)."""
+    return _media_storage_for('audio')
 
 
 class R2MediaStorage(S3Boto3Storage):

@@ -2,12 +2,13 @@ from django.conf import settings
 from django.db import models
 
 from config.media_processing import compress_audio, is_new_upload
+from config.storage import audio_storage
 
 
 class Audio(models.Model):
     titre = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    fichier = models.FileField(upload_to='audios/')
+    fichier = models.FileField(upload_to='audios/', storage=audio_storage)
     image_miniature = models.ImageField(upload_to='miniatures/audios/', blank=True, null=True)
     album = models.ForeignKey(
         'albums.Album', on_delete=models.SET_NULL,
