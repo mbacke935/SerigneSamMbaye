@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Indispensable en build release : lecture des audios/vidéos en streaming
+         et appels à l'API. Sans cette ligne, le réseau ne fonctionne qu'en debug. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="frontend"
         android:name="${applicationName}"

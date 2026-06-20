@@ -75,6 +75,33 @@ class AudioAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
+class ExternalUrlNormalizationTest(TestCase):
+    """Le lien externe est encodé à l'enregistrement (espaces/accents)."""
+
+    def test_espace_encode_a_la_sauvegarde(self):
+        audio = Audio.objects.create(
+            titre='Khassida',
+            lien_externe='https://archive.org/download/10_ser_sam_mbaye07/s.sam 56.mp3',
+            date_publication=timezone.now(),
+            is_published=True,
+        )
+        audio.refresh_from_db()
+        self.assertEqual(
+            audio.lien_externe,
+            'https://archive.org/download/10_ser_sam_mbaye07/s.sam%2056.mp3',
+        )
+
+    def test_lien_deja_encode_inchange(self):
+        deja = 'https://archive.org/download/10_ser_sam_mbaye07/s.sam%2056.mp3'
+        audio = Audio.objects.create(
+            titre='Khassida 2',
+            lien_externe=deja,
+            date_publication=timezone.now(),
+        )
+        audio.refresh_from_db()
+        self.assertEqual(audio.lien_externe, deja)
+
+
 class AudioCompressionTest(TestCase):
     """Compression automatique de l'audio à l'upload."""
 

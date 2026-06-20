@@ -13,11 +13,36 @@ import logging
 import os
 import subprocess
 import tempfile
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_external_url(url: str) -> str:
+    """Encode les caractères non sûrs d'une URL externe (espaces, accents).
+
+    Les noms de fichiers Internet Archive contiennent souvent des espaces ou des
+    accents (ex. `s.sam 56.mp3`, `Léçon n°2.mp3`). Stockés bruts dans
+    `lien_externe`, ils empêchent les lecteurs (mobile/web) de charger le média.
+
+    On encode le chemin et la requête tout en gardant `%` « sûr » : un `%20`
+    déjà présent n'est donc pas ré-encodé en `%2520`. Idempotent.
+    """
+    url = (url or '').strip()
+    if not url:
+        return url
+    try:
+        parts = urlsplit(url)
+        if not parts.scheme or not parts.netloc:
+            return url  # pas une URL absolue : on n'y touche pas
+        path = quote(parts.path, safe="/%:@-._~!$&'()*+,;=")
+        query = quote(parts.query, safe="/%:@-._~!$&'()*+,;=?")
+        return urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
+    except Exception:
+        return url
 
 # Débit cible pour la voix : 64 kbit/s mono est largement suffisant pour des
 # enregistrements parlés et divise la taille par ~3 à 4 par rapport à du stéréo 256k.

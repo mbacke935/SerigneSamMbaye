@@ -1,5 +1,6 @@
 from django.db import models
 
+from config.media_processing import normalize_external_url
 from config.storage import video_storage
 
 
@@ -26,6 +27,13 @@ class Video(models.Model):
         verbose_name = 'Vidéo'
         verbose_name_plural = 'Vidéos'
         ordering = ['-date_publication']
+
+    def save(self, *args, **kwargs):
+        # Normalise le lien externe (espaces/accents → %XX) pour que les lecteurs
+        # puissent le charger. Idempotent : un lien déjà encodé reste inchangé.
+        if self.lien_externe:
+            self.lien_externe = normalize_external_url(self.lien_externe)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.titre

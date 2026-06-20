@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from config.media_processing import compress_audio, is_new_upload
+from config.media_processing import compress_audio, is_new_upload, normalize_external_url
 from config.storage import audio_storage
 
 
@@ -30,6 +30,10 @@ class Audio(models.Model):
         ordering = ['-date_publication']
 
     def save(self, *args, **kwargs):
+        # Normalise le lien externe (espaces/accents → %XX) pour que les lecteurs
+        # puissent le charger. Idempotent : un lien déjà encodé reste inchangé.
+        if self.lien_externe:
+            self.lien_externe = normalize_external_url(self.lien_externe)
         # Compresse uniquement si activé (COMPRESS_AUDIO) ET fichier fraîchement
         # téléversé. Désactivé par défaut car trop lourd pour Render gratuit
         # (le worker se fait tuer par l'OOM killer → upload en 500).

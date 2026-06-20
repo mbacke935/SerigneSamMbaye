@@ -47,7 +47,9 @@ class AudioPlayerService {
     _currentAudio = audio;
     _currentAudioNotifier.value = audio;
     try {
-      await _player.setUrl(url);
+      // Timeout : si le chargement ne répond pas (réseau, serveur muet), on
+      // bascule en erreur plutôt que de laisser tourner le spinner sans fin.
+      await _player.setUrl(url).timeout(const Duration(seconds: 30));
       await _player.play();
     } catch (_) {
       // URL injoignable, format non supporté, lien Archive pointant vers une

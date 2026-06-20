@@ -1,3 +1,5 @@
+import '../utils/url_ext.dart';
+
 class AudioModel {
   final int id;
   final String titre;
@@ -22,8 +24,11 @@ class AudioModel {
   /// Source de lecture : le lien externe (Internet Archive, etc.) est prioritaire,
   /// sinon le fichier hébergé.
   String? get sourceUrl {
-    if (lienExterne != null && lienExterne!.isNotEmpty) return lienExterne;
-    return fichier;
+    final raw = (lienExterne != null && lienExterne!.isNotEmpty)
+        ? lienExterne!
+        : fichier;
+    if (raw == null || raw.isEmpty) return null;
+    return normalizeMediaUrl(raw);
   }
 
   factory AudioModel.fromJson(Map<String, dynamic> json) {
