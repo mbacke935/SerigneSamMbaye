@@ -11,9 +11,13 @@ class AudioPlayerService {
   AudioModel? _currentAudio;
   final ValueNotifier<AudioModel?> _currentAudioNotifier = ValueNotifier(null);
   final ValueNotifier<double> speedNotifier = ValueNotifier(1.0);
+  // Message d'erreur de lecture (null = pas d'erreur). Permet à l'UI d'afficher
+  // un état d'échec au lieu d'un spinner infini quand un audio ne se charge pas.
+  final ValueNotifier<String?> errorNotifier = ValueNotifier(null);
 
   ValueListenable<AudioModel?> get currentAudioListenable => _currentAudioNotifier;
   ValueListenable<double> get speedListenable => speedNotifier;
+  ValueListenable<String?> get errorListenable => errorNotifier;
   AudioModel? get currentAudio => _currentAudio;
   AudioPlayer get player => _player;
 
@@ -35,11 +39,29 @@ class AudioPlayerService {
 
   Future<void> playAudio(AudioModel audio) async {
     final url = audio.sourceUrl;
-    if (url == null || url.isEmpty) return;
+    if (url == null || url.isEmpty) {
+      _setError(audio, 'Cet audio n’a pas de source de lecture valide.');
+      return;
+    }
+    errorNotifier.value = null;
     _currentAudio = audio;
     _currentAudioNotifier.value = audio;
-    await _player.setUrl(url);
-    await _player.play();
+    try {
+      await _player.setUrl(url);
+      await _player.play();
+    } catch (_) {
+      // URL injoignable, format non supporté, lien Archive pointant vers une
+      // page au lieu du fichier… On remonte un état d'erreur à l'UI plutôt que
+      // de laisser un spinner tourner indéfiniment.
+      await _player.stop();
+      _setError(audio, 'Impossible de lire cet audio. Vérifiez le lien ou réessayez.');
+    }
+  }
+
+  void _setError(AudioModel audio, String message) {
+    _currentAudio = null;
+    _currentAudioNotifier.value = null;
+    errorNotifier.value = message;
   }
 
   Future<void> togglePlayPause() async {
@@ -67,5 +89,6 @@ class AudioPlayerService {
     await _player.stop();
     _currentAudio = null;
     _currentAudioNotifier.value = null;
+    errorNotifier.value = null;
   }
 }

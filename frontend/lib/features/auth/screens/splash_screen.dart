@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -13,6 +15,7 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
+  Timer? _redirectTimer;
 
   @override
   void initState() {
@@ -23,13 +26,14 @@ class _SplashScreenState extends State<SplashScreen>
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
-    Future.delayed(const Duration(seconds: 2), () {
+    _redirectTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) context.go('/');
     });
   }
 
   @override
   void dispose() {
+    _redirectTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

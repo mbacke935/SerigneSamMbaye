@@ -101,12 +101,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 const SizedBox(height: 28),
                 _buildTitle(),
                 const SizedBox(height: 16),
-                _buildEqualizer(),
-                const Spacer(),
-                _buildProgressBar(),
-                const SizedBox(height: 4),
-                _buildControls(),
-                const SizedBox(height: 36),
+                Expanded(
+                  child: ValueListenableBuilder<String?>(
+                    valueListenable: _playerService.errorListenable,
+                    builder: (context, error, _) {
+                      if (error != null) return _buildError(error);
+                      return Column(
+                        children: [
+                          _buildEqualizer(),
+                          const Spacer(),
+                          _buildProgressBar(),
+                          const SizedBox(height: 4),
+                          _buildControls(),
+                          const SizedBox(height: 36),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -157,6 +169,30 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         fontSize: 21,
         fontWeight: FontWeight.w700,
         height: 1.3,
+      ),
+    );
+  }
+
+  Widget _buildError(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: AppTheme.gold, size: 56),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
+          ),
+          const SizedBox(height: 24),
+          TextButton.icon(
+            onPressed: _initPlayer,
+            icon: const Icon(Icons.refresh_rounded, color: AppTheme.gold),
+            label: const Text('Réessayer',
+                style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }
