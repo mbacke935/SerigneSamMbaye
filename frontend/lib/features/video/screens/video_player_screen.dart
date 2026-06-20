@@ -1,6 +1,7 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../../core/models/video_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
@@ -17,8 +18,13 @@ class VideoPlayerScreen extends StatefulWidget {
 }
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+  // Lecteur fichier direct (.mp4 Archive, R2…)
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
+  // Lecteur YouTube (iframe, web + mobile)
+  YoutubePlayerController? _ytController;
+  String? _ytId;
+
   bool _playerReady = false;
   bool _playerError = false;
 
@@ -32,21 +38,37 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     super.initState();
     _favoriService = FavoriService(_client);
     _authService = AuthService(_client);
-    _initPlayer();
+    _setupPlayer();
     _loadFavoriState();
   }
 
-  Future<void> _initPlayer() async {
-    final url = widget.video.sourceUrl;
-    if (url == null || url.isEmpty) {
+  void _setupPlayer() {
+    final src = widget.video.sourceUrl ?? '';
+    if (src.isEmpty) {
       setState(() => _playerError = true);
       return;
     }
-    try {
-      _videoController =
-          VideoPlayerController.networkUrl(Uri.parse(url));
-      await _videoController!.initialize();
+    // Lien YouTube ? → lecteur iframe.
+    _ytId = YoutubePlayerController.convertUrlToId(src);
+    if (_ytId != null) {
+      _ytController = YoutubePlayerController.fromVideoId(
+        videoId: _ytId!,
+        autoPlay: true,
+        params: const YoutubePlayerParams(
+          showFullscreenButton: true,
+          enableCaption: false,
+        ),
+      );
+      setState(() => _playerReady = true);
+    } else {
+      _initFilePlayer(src);
+    }
+  }
 
+  Future<void> _initFilePlayer(String url) async {
+    try {
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(url));
+      await _videoController!.initialize();
       _chewieController = ChewieController(
         videoPlayerController: _videoController!,
         autoPlay: true,
@@ -62,7 +84,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           bufferedColor: Colors.white38,
         ),
       );
-
       if (mounted) setState(() => _playerReady = true);
     } catch (_) {
       if (mounted) setState(() => _playerError = true);
@@ -91,6 +112,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void dispose() {
     _chewieController?.dispose();
     _videoController?.dispose();
+    _ytController?.close();
     super.dispose();
   }
 
@@ -111,9 +133,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isFavorited
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
+              _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               color: _isFavorited ? const Color(0xFFE53935) : Colors.white,
             ),
             onPressed: _toggleFavori,
@@ -141,8 +161,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline_rounded,
-                    color: AppTheme.gold, size: 48),
+                Icon(Icons.error_outline_rounded, color: AppTheme.gold, size: 48),
                 SizedBox(height: 12),
                 Text('Impossible de lire cette vidéo',
                     style: TextStyle(color: Colors.white70, fontSize: 14)),
@@ -150,6 +169,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
           ),
         ),
+      );
+    }
+
+    // Lecteur YouTube
+    if (_ytController != null) {
+      return YoutubePlayer(
+        controller: _ytController!,
+        aspectRatio: 16 / 9,
       );
     }
 
@@ -204,8 +231,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(Icons.access_time_rounded,
-                    color: Colors.white54, size: 14),
+                const Icon(Icons.access_time_rounded, color: Colors.white54, size: 14),
                 const SizedBox(width: 4),
                 Text(
                   widget.video.dureeFormatee,
@@ -221,8 +247,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             const SizedBox(height: 12),
             Text(
               widget.video.description!,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 14, height: 1.6),
+              style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6),
             ),
           ],
         ],
