@@ -11,21 +11,30 @@ import 'routes/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Services synchrones légers — doivent être prêts avant le premier rendu.
+  await ThemeService().init();
+  await FontScaleService().init();
+  await DownloadService().init();
+
+  // Lance l'app immédiatement : plus de blanc/gel au démarrage.
+  runApp(const App());
+
+  // Services réseau initialisés en arrière-plan (Firebase, FCM, audio).
+  // Ils sont prêts bien avant que l'utilisateur interagisse avec l'app.
+  _initBackgroundServices();
+}
+
+Future<void> _initBackgroundServices() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await NotificationService.instance.init();
-  } catch (_) {
-    // Firebase non configuré — exécutez `flutterfire configure` pour activer les notifications.
-  }
+  } catch (_) {}
   try {
     await initBackground();
   } catch (_) {}
-  await ThemeService().init();
-  await FontScaleService().init();
-  await DownloadService().init();
-  runApp(const App());
 }
 
 class App extends StatelessWidget {
