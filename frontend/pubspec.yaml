@@ -27,6 +27,7 @@ dependencies:
   share_plus: ^10.0.0
   just_audio_background: ^0.0.1-beta.12
   path_provider: ^2.1.0
+  screen_brightness: ^2.1.7
 
 dev_dependencies:
   flutter_test:
