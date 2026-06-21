@@ -1,0 +1,96 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Import en masse — {{ model_verbose_name_plural }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Accueil</a>
+  &rsaquo; <a href="{{ list_url }}">{{ model_verbose_name_plural }}</a>
+  &rsaquo; Import en masse
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Import en masse — {{ model_verbose_name_plural }}</h1>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="messagelist">
+      <p class="{{ message.tags }}">{{ message }}</p>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if results %}
+<div style="background:#e8f5e9;border-left:4px solid #2e7d32;padding:12px 16px;margin-bottom:20px;border-radius:4px;">
+  <strong>✅ {{ results.created }} créé(s)</strong>
+  {% if results.skipped %} &nbsp;·&nbsp; ⚠️ {{ results.skipped }} ignoré(s) (ligne vide ou invalide){% endif %}
+  {% if results.errors %}<br>
+    <ul style="margin:8px 0 0 16px;color:#c62828;">
+      {% for err in results.errors %}<li>{{ err }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
+{% endif %}
+
+<div style="background:#fff;padding:24px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.12);max-width:760px;">
+  <p style="margin-top:0;color:#555;">
+    Collez vos liens ci-dessous, <strong>un par ligne</strong>.<br>
+    Format accepté : <code>URL</code> ou <code>Titre | URL</code>
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <fieldset class="module aligned" style="padding:0;border:none;">
+
+      <div class="form-row" style="margin-bottom:16px;">
+        <label for="id_liens" style="font-weight:bold;">Liens *</label>
+        <textarea id="id_liens" name="liens" rows="14" required
+          style="width:100%;font-family:monospace;font-size:13px;padding:8px;
+                 border:1px solid #ccc;border-radius:4px;resize:vertical;box-sizing:border-box;"
+          placeholder="https://archive.org/download/album/audio01.mp3
+Cours 02 | https://archive.org/download/album/audio02.mp3
+https://www.youtube.com/watch?v=XXXX">{{ form_liens }}</textarea>
+      </div>
+
+      <div class="form-row" style="margin-bottom:12px;">
+        <label for="id_album">Album</label>
+        <select id="id_album" name="album" style="min-width:220px;">
+          <option value="">— Aucun album —</option>
+          {% for album in albums %}
+            <option value="{{ album.pk }}" {% if album.pk == selected_album %}selected{% endif %}>
+              {{ album.titre }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row" style="margin-bottom:12px;">
+        <label for="id_date">Date de publication *</label>
+        <input type="date" id="id_date" name="date_publication"
+               value="{{ default_date }}" required
+               style="padding:5px 8px;border:1px solid #ccc;border-radius:4px;">
+      </div>
+
+      <div class="form-row" style="margin-bottom:20px;">
+        <label>
+          <input type="checkbox" name="is_published" value="1"
+                 {% if default_published %}checked{% endif %}>
+          &nbsp;Publier immédiatement
+        </label>
+      </div>
+
+    </fieldset>
+
+    <div>
+      <input type="submit" value="Importer"
+             class="default"
+             style="padding:8px 24px;font-size:14px;">
+      &nbsp;
+      <a href="{{ list_url }}" style="margin-left:8px;">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
