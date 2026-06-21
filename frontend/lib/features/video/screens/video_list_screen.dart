@@ -124,23 +124,34 @@ class _VideoListScreenState extends State<VideoListScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final video = _filteredVideos[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                    child: VideoCard(
-                      video: video,
-                      onTap: () => context.push('/videos/lecteur',
-                          extra: VideoPlayerArgs(
-                            playlist: _filteredVideos,
-                            initialIndex: i,
-                          )),
-                    ),
+            sliver: SliverToBoxAdapter(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  const spacing = AppSpacing.md;
+                  // Largeur cible ~290px : 1 colonne sur mobile, plusieurs sur web.
+                  final cols =
+                      (constraints.maxWidth / 290).floor().clamp(1, 4);
+                  final itemWidth =
+                      (constraints.maxWidth - spacing * (cols - 1)) / cols;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: AppSpacing.lg,
+                    children: [
+                      for (var i = 0; i < _filteredVideos.length; i++)
+                        SizedBox(
+                          width: itemWidth,
+                          child: VideoCard(
+                            video: _filteredVideos[i],
+                            onTap: () => context.push('/videos/lecteur',
+                                extra: VideoPlayerArgs(
+                                  playlist: _filteredVideos,
+                                  initialIndex: i,
+                                )),
+                          ),
+                        ),
+                    ],
                   );
                 },
-                childCount: _filteredVideos.length,
               ),
             ),
           ),
