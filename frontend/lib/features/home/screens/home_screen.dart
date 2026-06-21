@@ -16,6 +16,7 @@ import '../../../widgets/citation_card.dart';
 import '../../../widgets/fade_slide_in.dart';
 import '../../../widgets/skeleton.dart';
 import '../../../widgets/video_card.dart';
+import '../../video/screens/video_player_screen.dart' show VideoPlayerArgs;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -191,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
         else
           FadeSlideIn(
             delay: const Duration(milliseconds: 150),
-            child: _VideosGrid(videos: data.videos),
+            child: _VideosRail(videos: data.videos),
           ),
       ],
     );
@@ -289,27 +290,26 @@ class _AudiosRail extends StatelessWidget {
   }
 }
 
-class _VideosGrid extends StatelessWidget {
+class _VideosRail extends StatelessWidget {
   final List<VideoModel> videos;
-  const _VideosGrid({required this.videos});
+  const _VideosRail({required this.videos});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppSpacing.sm,
-          mainAxisSpacing: AppSpacing.sm,
-          childAspectRatio: 0.82,
-        ),
+    return SizedBox(
+      height: 234,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         itemCount: videos.length,
-        itemBuilder: (context, i) => VideoCard(
-          video: videos[i],
-          onTap: () => context.push('/videos/lecteur', extra: videos[i]),
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+        itemBuilder: (context, i) => SizedBox(
+          width: 280,
+          child: VideoCard(
+            video: videos[i],
+            onTap: () => context.push('/videos/lecteur',
+                extra: VideoPlayerArgs(playlist: videos, initialIndex: i)),
+          ),
         ),
       ),
     );

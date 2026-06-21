@@ -124,26 +124,23 @@ class _VideoListScreenState extends State<VideoListScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
-            sliver: SliverGrid(
+            sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, i) {
                   final video = _filteredVideos[i];
-                  return VideoCard(
-                    video: video,
-                    onTap: () => context.push('/videos/lecteur',
-                        extra: VideoPlayerArgs(
-                          playlist: _filteredVideos,
-                          initialIndex: i,
-                        )),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: VideoCard(
+                      video: video,
+                      onTap: () => context.push('/videos/lecteur',
+                          extra: VideoPlayerArgs(
+                            playlist: _filteredVideos,
+                            initialIndex: i,
+                          )),
+                    ),
                   );
                 },
                 childCount: _filteredVideos.length,
-              ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: AppSpacing.sm,
-                mainAxisSpacing: AppSpacing.sm,
-                childAspectRatio: 0.78,
               ),
             ),
           ),

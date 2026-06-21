@@ -12,6 +12,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/favori_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../widgets/video_thumbnail.dart';
 
 class VideoPlayerArgs {
   final List<VideoModel> playlist;
@@ -630,19 +631,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
           ),
 
-          if (_video.dureeFormatee.isNotEmpty) ...[
+          if (videoMetaLine(_video).isNotEmpty) ...[
             const SizedBox(height: 6),
-            Row(children: [
-              const Icon(Icons.access_time_rounded, color: Colors.white54, size: 14),
-              const SizedBox(width: 4),
-              Text(_video.dureeFormatee,
-                  style: const TextStyle(color: Colors.white54, fontSize: 13)),
-            ]),
+            Text(videoMetaLine(_video),
+                style: const TextStyle(color: Colors.white54, fontSize: 13)),
           ],
 
           // Seek buttons (direct video only)
           if (_vCtrl != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(children: [
               _seekChip(Icons.replay_10_rounded, '-10s',
                   () => _seek(const Duration(seconds: 10), forward: false)),
@@ -650,48 +647,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               _seekChip(Icons.forward_10_rounded, '+10s',
                   () => _seek(const Duration(seconds: 10), forward: true)),
             ]),
-          ],
-
-          // Playlist navigation
-          if (widget.args.playlist.length > 1) ...[
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.skip_previous_rounded, size: 18),
-                  label: const Text('Précédente'),
-                  onPressed: _hasPrev ? () => _playAt(_idx - 1) : null,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _hasPrev ? Colors.white : Colors.white30,
-                    side: BorderSide(
-                        color: _hasPrev ? Colors.white24 : Colors.white12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.skip_next_rounded, size: 18),
-                  label: const Text('Suivante'),
-                  iconAlignment: IconAlignment.end,
-                  onPressed: _hasNext ? () => _playAt(_idx + 1) : null,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _hasNext ? Colors.white : Colors.white30,
-                    side: BorderSide(
-                        color: _hasNext ? Colors.white24 : Colors.white12),
-                  ),
-                ),
-              ),
-            ]),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '${_idx + 1} / ${widget.args.playlist.length}',
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
-                ),
-              ),
-            ),
           ],
 
           if (_video.description?.isNotEmpty == true) ...[
@@ -703,7 +658,74 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6),
             ),
           ],
+
+          // « À suivre » — playlist cliquable
+          if (widget.args.playlist.length > 1) ...[
+            const SizedBox(height: 20),
+            const Divider(color: Colors.white12),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('À suivre',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                Text('${_idx + 1} / ${widget.args.playlist.length}',
+                    style: const TextStyle(color: Colors.white38, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...List.generate(widget.args.playlist.length, (i) {
+              if (i == _idx) return const SizedBox.shrink();
+              return _upNextTile(i);
+            }),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _upNextTile(int index) {
+    final v = widget.args.playlist[index];
+    return InkWell(
+      onTap: () => _playAt(index),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 132,
+              child: VideoThumbnail(video: v, radius: 8, playSize: 30),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    v.titre,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25),
+                  ),
+                  if (videoMetaLine(v).isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(videoMetaLine(v),
+                        style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
