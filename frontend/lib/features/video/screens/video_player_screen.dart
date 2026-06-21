@@ -537,6 +537,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             onPressed: _toggleFav,
             tooltip: 'Favoris',
           ),
+          if (_vCtrl != null && _ready)
+            IconButton(
+              icon: const Icon(Icons.fullscreen_rounded),
+              onPressed: _enterFullscreen,
+              tooltip: 'Plein écran',
+            ),
         ],
       ),
       body: Column(
