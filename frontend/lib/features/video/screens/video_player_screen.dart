@@ -14,6 +14,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/favori_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/web_fullscreen.dart';
 import '../../../widgets/video_thumbnail.dart';
 
 class VideoPlayerArgs {
@@ -96,6 +97,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _ytCtrl?.close();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    exitWebFullscreen();
+    setWebCursorHidden(false);
     if (!kIsWeb) {
       try {
         ScreenBrightness().resetApplicationScreenBrightness();
@@ -289,6 +292,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _enterFullscreen() async {
+    // Appel synchrone d'abord (requestFullscreen exige un geste utilisateur).
+    enterWebFullscreen();
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
@@ -303,6 +308,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _exitFullscreen() async {
+    exitWebFullscreen();
+    setWebCursorHidden(false);
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     if (!mounted) return;
@@ -501,6 +508,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Curseur masqué dès qu'on est en plein écran et que les contrôles le sont.
+    setWebCursorHidden(_isFullscreen && !_controlsVisible);
     return PopScope(
       canPop: !_isFullscreen,
       onPopInvokedWithResult: (didPop, _) {
