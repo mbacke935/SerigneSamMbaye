@@ -26,11 +26,15 @@ class _AudioListScreenState extends State<AudioListScreen> {
   late final AuthService _authService;
   final _playerService = AudioPlayerService();
   final _searchCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
 
   List<AudioModel> _allAudios = [];
   List<AudioModel> _filteredAudios = [];
   Set<int> _favoritedIds = {};
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 1;
 
   @override
   void initState() {
@@ -38,28 +42,56 @@ class _AudioListScreenState extends State<AudioListScreen> {
     _contentService = ContentService(_client);
     _favoriService = FavoriService(_client);
     _authService = AuthService(_client);
+    _scrollCtrl.addListener(_onScroll);
     _load();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (_searchCtrl.text.isNotEmpty) return;
+    if (_loadingMore || !_hasMore) return;
+    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final audios = await _contentService.getAllAudios();
+    setState(() { _loading = true; _page = 1; _hasMore = true; });
+    final result = await _contentService.getAudiosPaged(1);
     Set<int> favorited = {};
     if (await _authService.isLoggedIn()) {
       favorited = await _favoriService.getFavoritedIds('audio');
     }
     if (mounted) {
       setState(() {
-        _allAudios = audios;
-        _filteredAudios = audios;
+        _allAudios = result.items;
+        _filteredAudios = result.items;
         _favoritedIds = favorited;
+        _hasMore = result.hasMore;
+        _page = 1;
         _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    final nextPage = _page + 1;
+    final result = await _contentService.getAudiosPaged(nextPage);
+    if (mounted) {
+      setState(() {
+        _allAudios.addAll(result.items);
+        _filteredAudios = _allAudios;
+        _hasMore = result.hasMore;
+        _page = nextPage;
+        _loadingMore = false;
       });
     }
   }
@@ -131,9 +163,16 @@ class _AudioListScreenState extends State<AudioListScreen> {
         return RefreshIndicator(
           onRefresh: _load,
           child: ListView.builder(
+            controller: _scrollCtrl,
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            itemCount: _filteredAudios.length,
+            itemCount: _filteredAudios.length + (_loadingMore ? 1 : 0),
             itemBuilder: (context, i) {
+              if (i == _filteredAudios.length) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               final audio = _filteredAudios[i];
               return AudioListTile(
                 audio: audio,
@@ -149,4 +188,3 @@ class _AudioListScreenState extends State<AudioListScreen> {
     );
   }
 }
-

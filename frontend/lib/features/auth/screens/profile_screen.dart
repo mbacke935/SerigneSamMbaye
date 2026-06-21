@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/theme_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -70,6 +71,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 32),
                 const Divider(),
                 const SizedBox(height: 8),
+                _buildThemeTile(context),
+                const Divider(),
+                const SizedBox(height: 8),
                 ListTile(
                   leading: const Icon(Icons.favorite_rounded, color: AppTheme.primary),
                   title: const Text('Mes favoris',
@@ -93,6 +97,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildThemeTile(BuildContext context) {
+    return ListenableBuilder(
+      listenable: ThemeService(),
+      builder: (context, _) {
+        final mode = ThemeService().mode;
+        return ListTile(
+          leading: Icon(
+            mode == ThemeMode.dark
+                ? Icons.dark_mode_rounded
+                : mode == ThemeMode.light
+                    ? Icons.light_mode_rounded
+                    : Icons.brightness_auto_rounded,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppTheme.gold
+                : AppTheme.primary,
+          ),
+          title: const Text('Thème', style: TextStyle(fontWeight: FontWeight.w600)),
+          trailing: SegmentedButton<ThemeMode>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded, size: 18)),
+              ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto_rounded, size: 18)),
+              ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 18)),
+            ],
+            selected: {mode},
+            onSelectionChanged: (s) => ThemeService().setMode(s.first),
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        );
+      },
     );
   }
 
@@ -155,35 +196,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildUnauthenticated(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.account_circle_outlined,
-              size: 96, color: AppTheme.primary),
-          const SizedBox(height: 24),
-          Text('Connectez-vous',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          Text(
-            'Créez un compte pour sauvegarder vos audios, vidéos et citations favoris.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 36),
-          ElevatedButton(
-            onPressed: () => context.go('/connexion'),
-            child: const Text('Se connecter'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: () => context.go('/inscription'),
-            child: const Text('Créer un compte'),
-          ),
-        ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 32),
+            const Icon(Icons.account_circle_outlined,
+                size: 96, color: AppTheme.primary),
+            const SizedBox(height: 24),
+            Text('Connectez-vous',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Text(
+              'Créez un compte pour sauvegarder vos audios, vidéos et citations favoris.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 36),
+            ElevatedButton(
+              onPressed: () => context.go('/connexion'),
+              child: const Text('Se connecter'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => context.go('/inscription'),
+              child: const Text('Créer un compte'),
+            ),
+            const SizedBox(height: 40),
+            const Divider(),
+            const SizedBox(height: 16),
+            _buildThemeTile(context),
+          ],
+        ),
       ),
     );
   }

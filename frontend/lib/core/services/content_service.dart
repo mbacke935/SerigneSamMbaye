@@ -5,6 +5,12 @@ import '../models/biographie_model.dart';
 import '../network/api_client.dart';
 import '../constants/app_constants.dart';
 
+class PagedResult<T> {
+  final List<T> items;
+  final bool hasMore;
+  const PagedResult({required this.items, required this.hasMore});
+}
+
 class ContentService {
   final ApiClient _apiClient;
 
@@ -44,6 +50,38 @@ class ContentService {
           .toList();
     } catch (_) {
       return [];
+    }
+  }
+
+  Future<PagedResult<AudioModel>> getAudiosPaged(int page) async {
+    try {
+      final response = await _apiClient.dio.get(
+        AppConstants.audiosEndpoint,
+        queryParameters: {'page': page},
+      );
+      final raw = response.data;
+      final list = (raw['results'] as List? ?? [])
+          .map((e) => AudioModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return PagedResult(items: list, hasMore: raw['next'] != null);
+    } catch (_) {
+      return const PagedResult(items: [], hasMore: false);
+    }
+  }
+
+  Future<PagedResult<VideoModel>> getVideosPaged(int page) async {
+    try {
+      final response = await _apiClient.dio.get(
+        AppConstants.videosEndpoint,
+        queryParameters: {'page': page},
+      );
+      final raw = response.data;
+      final list = (raw['results'] as List? ?? [])
+          .map((e) => VideoModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return PagedResult(items: list, hasMore: raw['next'] != null);
+    } catch (_) {
+      return const PagedResult(items: [], hasMore: false);
     }
   }
 

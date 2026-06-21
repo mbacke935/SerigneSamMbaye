@@ -1,5 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/models/audio_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/audio_player_service.dart';
@@ -28,6 +31,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   bool _dragging = false;
   double _dragValue = 0;
 
+  // Piste affichée (peut changer si playlist auto-avance)
+  AudioModel get _currentAudio =>
+      _playerService.currentAudio ?? widget.audio;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +55,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   }
 
   Future<void> _toggleFavori() async {
+    HapticFeedback.lightImpact();
     final loggedIn = await _authService.isLoggedIn();
     if (!loggedIn) {
       if (!mounted) return;
@@ -56,79 +64,97 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       );
       return;
     }
-    final isFav = await _favoriService.toggle('audio', widget.audio.id);
+    final isFav = await _favoriService.toggle('audio', _currentAudio.id);
     if (mounted) setState(() => _isFavorited = isFav);
+  }
+
+  void _share() {
+    Share.share(
+      'Écouter « ${_currentAudio.titre} » — Serigne Sam Mbaye\n${_currentAudio.sourceUrl ?? ""}',
+      subject: _currentAudio.titre,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.primary,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text('En lecture',
-            style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              color: _isFavorited ? const Color(0xFFE53935) : Colors.white,
-            ),
-            onPressed: _toggleFavori,
-            tooltip: 'Favoris',
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppTheme.primaryLight, AppTheme.primary, Color(0xFF0A2A1F)],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              children: [
-                const SizedBox(height: 24),
-                _buildCover(),
-                const SizedBox(height: 28),
-                _buildTitle(),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ValueListenableBuilder<String?>(
-                    valueListenable: _playerService.errorListenable,
-                    builder: (context, error, _) {
-                      if (error != null) return _buildError(error);
-                      return Column(
-                        children: [
-                          _buildEqualizer(),
-                          const Spacer(),
-                          _buildProgressBar(),
-                          const SizedBox(height: 4),
-                          _buildControls(),
-                          const SizedBox(height: 36),
-                        ],
-                      );
-                    },
-                  ),
+    return ValueListenableBuilder<AudioModel?>(
+      valueListenable: _playerService.currentAudioListenable,
+      builder: (context, currentAudio, _) {
+        final audio = currentAudio ?? widget.audio;
+        return Scaffold(
+          backgroundColor: AppTheme.primary,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: true,
+            title: const Text('En lecture',
+                style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share_rounded, color: Colors.white70),
+                onPressed: _share,
+                tooltip: 'Partager',
+              ),
+              IconButton(
+                icon: Icon(
+                  _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: _isFavorited ? const Color(0xFFE53935) : Colors.white,
                 ),
-              ],
+                onPressed: _toggleFavori,
+                tooltip: 'Favoris',
+              ),
+            ],
+          ),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppTheme.primaryLight, AppTheme.primary, Color(0xFF0A2A1F)],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildCover(audio),
+                    const SizedBox(height: 28),
+                    _buildTitle(audio),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ValueListenableBuilder<String?>(
+                        valueListenable: _playerService.errorListenable,
+                        builder: (context, error, _) {
+                          if (error != null) return _buildError(error);
+                          return Column(
+                            children: [
+                              _buildEqualizer(),
+                              const Spacer(),
+                              _buildProgressBar(),
+                              const SizedBox(height: 4),
+                              _buildControls(),
+                              const SizedBox(height: 36),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildCover() {
-    final thumbnail = widget.audio.imageMiniature;
+  Widget _buildCover(AudioModel audio) {
+    final thumbnail = audio.imageMiniature;
     return Container(
       width: double.infinity,
       height: 260,
@@ -145,8 +171,12 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       ),
       clipBehavior: Clip.antiAlias,
       child: thumbnail != null && thumbnail.isNotEmpty
-          ? Image.network(thumbnail, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _coverPlaceholder())
+          ? CachedNetworkImage(
+              imageUrl: thumbnail,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => _coverPlaceholder(),
+              errorWidget: (_, __, ___) => _coverPlaceholder(),
+            )
           : _coverPlaceholder(),
     );
   }
@@ -158,9 +188,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     );
   }
 
-  Widget _buildTitle() {
+  Widget _buildTitle(AudioModel audio) {
     return Text(
-      widget.audio.titre,
+      audio.titre,
       textAlign: TextAlign.center,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
@@ -307,62 +337,101 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
         final isLoading = state?.processingState == ProcessingState.loading ||
             state?.processingState == ProcessingState.buffering;
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Column(
           children: [
-            _buildSpeedButton(),
-            IconButton(
-              icon: const Icon(Icons.replay_10_rounded),
-              color: Colors.white,
-              iconSize: 34,
-              onPressed: _playerService.seekBackward,
-            ),
-            GestureDetector(
-              onTap: isLoading ? null : _playerService.togglePlayPause,
-              child: Container(
-                width: 74,
-                height: 74,
-                decoration: BoxDecoration(
-                  color: AppTheme.gold,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.gold.withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSpeedButton(),
+                IconButton(
+                  icon: const Icon(Icons.replay_10_rounded),
+                  color: Colors.white,
+                  iconSize: 34,
+                  onPressed: _playerService.seekBackward,
                 ),
-                child: isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(22),
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: Colors.white),
-                      )
-                    : Icon(
-                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 42,
+                GestureDetector(
+                  onTap: isLoading
+                      ? null
+                      : () {
+                          HapticFeedback.lightImpact();
+                          _playerService.togglePlayPause();
+                        },
+                  child: Container(
+                    width: 74,
+                    height: 74,
+                    decoration: BoxDecoration(
+                      color: AppTheme.gold,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.gold.withValues(alpha: 0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: isLoading
+                        ? const Padding(
+                            padding: EdgeInsets.all(22),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.5, color: Colors.white),
+                          )
+                        : Icon(
+                            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 42,
+                          ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.forward_10_rounded),
+                  color: Colors.white,
+                  iconSize: 34,
+                  onPressed: _playerService.seekForward,
+                ),
+                SizedBox(
+                  width: 48,
+                  child: IconButton(
+                    icon: const Icon(Icons.stop_rounded),
+                    color: Colors.white70,
+                    iconSize: 28,
+                    onPressed: () {
+                      _playerService.stop();
+                      Navigator.of(context).maybePop();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // Prev / Next si playlist active
+            ValueListenableBuilder<AudioModel?>(
+              valueListenable: _playerService.currentAudioListenable,
+              builder: (context, _, __) {
+                final hasPrev = _playerService.hasPrevious;
+                final hasNext = _playerService.hasNext;
+                if (!hasPrev && !hasNext) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.skip_previous_rounded,
+                            color: hasPrev ? Colors.white : Colors.white24, size: 32),
+                        onPressed: hasPrev ? _playerService.playPrevious : null,
+                        tooltip: 'Précédent',
                       ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.forward_10_rounded),
-              color: Colors.white,
-              iconSize: 34,
-              onPressed: _playerService.seekForward,
-            ),
-            SizedBox(
-              width: 48,
-              child: IconButton(
-                icon: const Icon(Icons.stop_rounded),
-                color: Colors.white70,
-                iconSize: 28,
-                onPressed: () {
-                  _playerService.stop();
-                  Navigator.of(context).maybePop();
-                },
-              ),
+                      const SizedBox(width: 24),
+                      IconButton(
+                        icon: Icon(Icons.skip_next_rounded,
+                            color: hasNext ? Colors.white : Colors.white24, size: 32),
+                        onPressed: hasNext ? _playerService.playNext : null,
+                        tooltip: 'Suivant',
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         );

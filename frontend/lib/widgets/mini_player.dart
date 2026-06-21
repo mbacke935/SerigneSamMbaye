@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
@@ -105,6 +106,21 @@ class _MiniPlayerContent extends StatelessWidget {
                           fontSize: 13),
                     ),
                   ),
+                  // Précédent
+                  ValueListenableBuilder<AudioModel?>(
+                    valueListenable: service.currentAudioListenable,
+                    builder: (context, _, __) {
+                      if (!service.hasPrevious) return const SizedBox.shrink();
+                      return IconButton(
+                        icon: const Icon(Icons.skip_previous_rounded,
+                            color: Colors.white70, size: 22),
+                        onPressed: service.playPrevious,
+                        tooltip: 'Précédent',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      );
+                    },
+                  ),
                   StreamBuilder<PlayerState>(
                     stream: service.playerStateStream,
                     builder: (context, snapshot) {
@@ -134,6 +150,21 @@ class _MiniPlayerContent extends StatelessWidget {
                       );
                     },
                   ),
+                  // Suivant
+                  ValueListenableBuilder<AudioModel?>(
+                    valueListenable: service.currentAudioListenable,
+                    builder: (context, _, __) {
+                      if (!service.hasNext) return const SizedBox.shrink();
+                      return IconButton(
+                        icon: const Icon(Icons.skip_next_rounded,
+                            color: Colors.white70, size: 22),
+                        onPressed: service.playNext,
+                        tooltip: 'Suivant',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      );
+                    },
+                  ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded,
                         color: Colors.white54, size: 20),
@@ -151,9 +182,14 @@ class _MiniPlayerContent extends StatelessWidget {
 
   Widget _thumbnail() {
     if (audio.imageMiniature != null && audio.imageMiniature!.isNotEmpty) {
-      return Image.network(audio.imageMiniature!,
-          width: 40, height: 40, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholderIcon());
+      return CachedNetworkImage(
+        imageUrl: audio.imageMiniature!,
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => _placeholderIcon(),
+        errorWidget: (_, __, ___) => _placeholderIcon(),
+      );
     }
     return _placeholderIcon();
   }

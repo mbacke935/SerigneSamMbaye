@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/theme_service.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'routes/app_router.dart';
@@ -15,6 +16,7 @@ void main() async {
   } catch (_) {
     // Firebase non configuré — exécutez `flutterfire configure` pour activer les notifications.
   }
+  await ThemeService().init();
   runApp(const App());
 }
 
@@ -23,13 +25,18 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Serigne Sam Mbaye',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      routerConfig: AppRouter.router,
+    return ListenableBuilder(
+      listenable: ThemeService(),
+      builder: (context, _) {
+        return MaterialApp.router(
+          title: 'Serigne Sam Mbaye',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeService().mode,
+          routerConfig: AppRouter.router,
+        );
+      },
     );
   }
 }

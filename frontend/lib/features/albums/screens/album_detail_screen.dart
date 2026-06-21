@@ -5,6 +5,7 @@ import '../../../core/models/audio_model.dart';
 import '../../../core/models/video_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/album_service.dart';
+import '../../../core/services/audio_player_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/fade_slide_in.dart';
@@ -63,7 +64,11 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
           ...album.audios.asMap().entries.map(
                 (e) => FadeSlideIn(
                   delay: Duration(milliseconds: 40 * e.key),
-                  child: _AudioTile(audio: e.value),
+                  child: _AudioTile(
+                    audio: e.value,
+                    playlist: album.audios,
+                    index: e.key,
+                  ),
                 ),
               ),
         ],
@@ -155,18 +160,37 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
 
 class _AudioTile extends StatelessWidget {
   final AudioModel audio;
-  const _AudioTile({required this.audio});
+  final List<AudioModel> playlist;
+  final int index;
+
+  const _AudioTile({required this.audio, required this.playlist, required this.index});
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: _thumb(audio.imageMiniature, Icons.headphones_rounded),
-      title: Text(audio.titre,
-          maxLines: 1, overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: audio.dureeFormatee.isNotEmpty ? Text(audio.dureeFormatee) : null,
-      trailing: const Icon(Icons.play_circle_fill_rounded, color: AppTheme.primary, size: 32),
-      onTap: () => context.push('/audios/lecteur', extra: audio),
+    return ValueListenableBuilder<AudioModel?>(
+      valueListenable: AudioPlayerService().currentAudioListenable,
+      builder: (context, current, _) {
+        final isActive = current?.id == audio.id;
+        return ListTile(
+          leading: _thumb(audio.imageMiniature, Icons.headphones_rounded),
+          title: Text(audio.titre,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isActive ? AppTheme.gold : null,
+              )),
+          subtitle: audio.dureeFormatee.isNotEmpty ? Text(audio.dureeFormatee) : null,
+          trailing: Icon(
+            isActive ? Icons.graphic_eq_rounded : Icons.play_circle_fill_rounded,
+            color: AppTheme.primary,
+            size: 32,
+          ),
+          onTap: () {
+            AudioPlayerService().setPlaylist(playlist, index);
+            context.push('/audios/lecteur', extra: audio);
+          },
+        );
+      },
     );
   }
 }

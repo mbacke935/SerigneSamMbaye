@@ -19,32 +19,64 @@ class VideoListScreen extends StatefulWidget {
 class _VideoListScreenState extends State<VideoListScreen> {
   late final ContentService _contentService;
   final _searchCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
 
   List<VideoModel> _allVideos = [];
   List<VideoModel> _filteredVideos = [];
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 1;
 
   @override
   void initState() {
     super.initState();
     _contentService = ContentService(ApiClient());
+    _scrollCtrl.addListener(_onScroll);
     _load();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (_searchCtrl.text.isNotEmpty) return;
+    if (_loadingMore || !_hasMore) return;
+    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final videos = await _contentService.getAllVideos();
+    setState(() { _loading = true; _page = 1; _hasMore = true; });
+    final result = await _contentService.getVideosPaged(1);
     if (mounted) {
       setState(() {
-        _allVideos = videos;
-        _filteredVideos = videos;
+        _allVideos = result.items;
+        _filteredVideos = result.items;
+        _hasMore = result.hasMore;
+        _page = 1;
         _loading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    final nextPage = _page + 1;
+    final result = await _contentService.getVideosPaged(nextPage);
+    if (mounted) {
+      setState(() {
+        _allVideos.addAll(result.items);
+        _filteredVideos = _allVideos;
+        _hasMore = result.hasMore;
+        _page = nextPage;
+        _loadingMore = false;
       });
     }
   }
@@ -85,22 +117,53 @@ class _VideoListScreenState extends State<VideoListScreen> {
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xl),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppSpacing.sm,
-          mainAxisSpacing: AppSpacing.sm,
-          childAspectRatio: 0.78,
-        ),
-        itemCount: _filteredVideos.length,
-        itemBuilder: (context, i) {
-          final video = _filteredVideos[i];
-          return VideoCard(
-            video: video,
-            onTap: () => context.push('/videos/lecteur', extra: video),
-          );
-        },
+      child: CustomScrollView(
+        controller: _scrollCtrl,
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
+            sliver: SliverGrid(
+              delegate: SliverChildBuilderDelegate(
+                (context, i) {
+                  final video = _filteredVideos[i];
+                  return VideoCard(
+                    video: video,
+                    onTap: () => context.push('/videos/lecteur', extra: video),
+                  );
+                },
+                childCount: _filteredVideos.length,
+              ),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 0.78,
+              ),
+            ),
+          ),
+          if (_loadingMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          if (!_hasMore && _filteredVideos.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, AppSpacing.xl),
+                child: Center(
+                  child: Text(
+                    'Toutes les vidéos chargées',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

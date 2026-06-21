@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
@@ -9,13 +10,26 @@ admin.site.site_header = 'Serigne Sam Mbaye — Administration'
 admin.site.site_title = 'Espace Administration'
 admin.site.index_title = 'Tableau de bord'
 
+
+class _AuthThrottle(AnonRateThrottle):
+    scope = 'auth'
+
+
+class _ThrottledTokenObtainView(TokenObtainPairView):
+    throttle_classes = [_AuthThrottle]
+
+
+class _ThrottledTokenRefreshView(TokenRefreshView):
+    throttle_classes = [_AuthThrottle]
+
+
 urlpatterns = [
     # Admin
     path('gestion/', admin.site.urls),
 
-    # Auth JWT
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Auth JWT (rate-limited : 10 tentatives/minute par IP)
+    path('api/token/', _ThrottledTokenObtainView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', _ThrottledTokenRefreshView.as_view(), name='token_refresh'),
 
     # API endpoints
     path('api/users/', include('apps.users.urls')),

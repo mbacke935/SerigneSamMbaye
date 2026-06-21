@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/models/video_model.dart';
 import '../core/theme/app_theme.dart';
@@ -11,6 +12,7 @@ class VideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isNew = _isNew(video.datePublication);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -53,6 +55,23 @@ class VideoCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (isNew)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gold,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'NOUVEAU',
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
               ],
             ),
             Padding(
@@ -73,14 +92,25 @@ class VideoCard extends StatelessWidget {
     );
   }
 
+  bool _isNew(String? dateStr) {
+    if (dateStr == null) return false;
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateTime.now().difference(date).inDays < 7;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Widget _buildThumbnail() {
     if (video.imageMiniature != null && video.imageMiniature!.isNotEmpty) {
-      return Image.network(
-        video.imageMiniature!,
+      return CachedNetworkImage(
+        imageUrl: video.imageMiniature!,
         height: 110,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
+        placeholder: (_, __) => _placeholder(),
+        errorWidget: (_, __, ___) => _placeholder(),
       );
     }
     return _placeholder();

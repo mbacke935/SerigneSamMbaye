@@ -3,7 +3,7 @@
          et appels à l'API. Sans cette ligne, le réseau ne fonctionne qu'en debug. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="frontend"
+        android:label="Serigne Sam Mbaye"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

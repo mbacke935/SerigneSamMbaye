@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
@@ -12,7 +13,12 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          const _ConnectivityBanner(),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -64,6 +70,43 @@ class AppScaffold extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ConnectivityBanner extends StatelessWidget {
+  const _ConnectivityBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final results = snapshot.data;
+        if (results == null) return const SizedBox.shrink();
+        final isOffline = results.every((r) => r == ConnectivityResult.none);
+        if (!isOffline) return const SizedBox.shrink();
+        return SafeArea(
+          bottom: false,
+          child: Container(
+            width: double.infinity,
+            color: Colors.red.shade700,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.wifi_off_rounded, color: Colors.white, size: 15),
+                SizedBox(width: 8),
+                Text(
+                  'Hors connexion',
+                  style: TextStyle(
+                      color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
