@@ -585,17 +585,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     final w = MediaQuery.of(context).size.width;
 
-    return ColoredBox(
-      color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Center(
-            child: AspectRatio(
-              aspectRatio: _vCtrl!.value.aspectRatio,
-              child: VideoPlayer(_vCtrl!),
+    return MouseRegion(
+      // Web/desktop : un mouvement de souris révèle les contrôles ; le curseur
+      // se masque avec eux pendant la lecture.
+      cursor: _controlsVisible ? MouseCursor.defer : SystemMouseCursors.none,
+      onHover: (_) => _onPointerHover(),
+      onExit: (_) => _onPointerExit(),
+      child: ColoredBox(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: AspectRatio(
+                aspectRatio: _vCtrl!.value.aspectRatio,
+                child: VideoPlayer(_vCtrl!),
+              ),
             ),
-          ),
 
           // Gesture zones (left / right halves)
           Positioned(
@@ -645,19 +651,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           if (_gesture != null) _buildGestureIndicator(),
 
           // Controls overlay
-          AnimatedOpacity(
-            opacity: _controlsVisible ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: IgnorePointer(
-              ignoring: !_controlsVisible,
-              child: _locked
-                  ? _buildLockedOverlay()
-                  : _buildControls(fullscreen: fullscreen),
+            AnimatedOpacity(
+              opacity: _controlsVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: !_controlsVisible,
+                child: _locked
+                    ? _buildLockedOverlay()
+                    : _buildControls(fullscreen: fullscreen),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  void _onPointerHover() {
+    _hideTimer?.cancel();
+    if (!_controlsVisible) setState(() => _controlsVisible = true);
+    _scheduleHide();
+  }
+
+  void _onPointerExit() {
+    if (!(_vCtrl?.value.isPlaying ?? false)) return;
+    _hideTimer?.cancel();
+    if (_controlsVisible) setState(() => _controlsVisible = false);
   }
 
   // ── Controls overlay (unlocked) ──────────────────────────────────────────
