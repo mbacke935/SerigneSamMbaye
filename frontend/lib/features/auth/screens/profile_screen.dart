@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/models/audio_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/font_scale_service.dart';
+import '../../../core/services/history_service.dart';
+import '../../../core/services/notification_prefs_service.dart';
 import '../../../core/services/theme_service.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -17,24 +21,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService(ApiClient());
   UserModel? _user;
   bool _loading = true;
+  List<AudioModel> _history = [];
+  Map<String, bool> _notifPrefs = {};
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadAll();
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadAll() async {
     final loggedIn = await _authService.isLoggedIn();
-    if (!loggedIn) {
-      if (mounted) setState(() => _loading = false);
-      return;
+    final history = await HistoryService().getHistory();
+    final notifPrefs = await NotificationPrefsService().loadAll();
+    UserModel? user;
+    if (loggedIn) {
+      try {
+        user = await _authService.getMe();
+      } catch (_) {}
     }
-    try {
-      final user = await _authService.getMe();
-      if (mounted) setState(() { _user = user; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() {
+        _user = user;
+        _history = history;
+        _notifPrefs = notifPrefs;
+        _loading = false;
+      });
     }
   }
 
@@ -55,6 +67,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ─── Authenticated ─────────────────────────────────────────────────────────
+
   Widget _buildAuthenticated(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
@@ -64,16 +78,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoTile(Icons.person_outlined, 'Nom d\'utilisateur', _user!.username),
                 const SizedBox(height: 12),
                 _buildInfoTile(Icons.email_outlined, 'Email', _user!.email),
-                const SizedBox(height: 32),
-                const Divider(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
+                if (_history.isNotEmpty) _buildStats(),
+                const Divider(height: 32),
                 _buildThemeTile(context),
-                const Divider(),
-                const SizedBox(height: 8),
+                const Divider(height: 8),
+                _buildFontScaleTile(context),
+                const Divider(height: 32),
+                _buildNotifSection(),
+                const Divider(height: 32),
                 ListTile(
                   leading: const Icon(Icons.favorite_rounded, color: AppTheme.primary),
                   title: const Text('Mes favoris',
@@ -92,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: _logout,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -99,6 +118,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  Widget _buildStats() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _statItem(Icons.headphones_rounded, '${_history.length}', 'audios écoutés'),
+          _statItem(Icons.history_rounded, _lastListened(), 'dernier audio'),
+        ],
+      ),
+    );
+  }
+
+  String _lastListened() {
+    if (_history.isEmpty) return '—';
+    return _history.first.titre.split(' ').take(2).join(' ');
+  }
+
+  Widget _statItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: AppTheme.primary, size: 22),
+        const SizedBox(height: 4),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      ],
+    );
+  }
+
+  Widget _buildNotifSection() {
+    const labels = {
+      'audio': ('Nouveaux audios', Icons.headphones_outlined),
+      'video': ('Nouvelles vidéos', Icons.videocam_outlined),
+      'citation': ('Citation du jour', Icons.format_quote_outlined),
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text('Notifications',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+        ),
+        for (final entry in labels.entries)
+          SwitchListTile(
+            secondary: Icon(entry.value.$2, color: AppTheme.primary),
+            title: Text(entry.value.$1,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            value: _notifPrefs[entry.key] ?? true,
+            activeColor: AppTheme.primary,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            onChanged: (v) async {
+              await NotificationPrefsService().setEnabled(entry.key, v);
+              if (mounted) setState(() => _notifPrefs[entry.key] = v);
+            },
+          ),
+      ],
+    );
+  }
+
+  // ─── Shared ────────────────────────────────────────────────────────────────
 
   Widget _buildThemeTile(BuildContext context) {
     return ListenableBuilder(
@@ -126,10 +221,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
             selected: {mode},
             onSelectionChanged: (s) => ThemeService().setMode(s.first),
-            style: ButtonStyle(
+            style: const ButtonStyle(
               visualDensity: VisualDensity.compact,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        );
+      },
+    );
+  }
+
+  Widget _buildFontScaleTile(BuildContext context) {
+    return ListenableBuilder(
+      listenable: FontScaleService(),
+      builder: (context, _) {
+        final scale = FontScaleService().scale;
+        return ListTile(
+          leading: Icon(
+            Icons.text_fields_rounded,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppTheme.gold
+                : AppTheme.primary,
+          ),
+          title: const Text('Taille du texte',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Slider(
+            value: scale,
+            min: 0.8,
+            max: 1.4,
+            divisions: 6,
+            activeColor: AppTheme.primary,
+            label: '${(scale * 100).round()}%',
+            onChanged: (v) => FontScaleService().setScale(v),
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         );
@@ -182,18 +306,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: scheme.brightness == Brightness.dark ? AppTheme.gold : AppTheme.primary, size: 20),
+          Icon(icon,
+              color: scheme.brightness == Brightness.dark
+                  ? AppTheme.gold
+                  : AppTheme.primary,
+              size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-            ]),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 11, color: scheme.onSurfaceVariant)),
+                  Text(value,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ]),
           ),
         ],
       ),
     );
   }
+
+  // ─── Unauthenticated ───────────────────────────────────────────────────────
 
   Widget _buildUnauthenticated(BuildContext context) {
     return SingleChildScrollView(
@@ -230,6 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Divider(),
             const SizedBox(height: 16),
             _buildThemeTile(context),
+            _buildFontScaleTile(context),
           ],
         ),
       ),

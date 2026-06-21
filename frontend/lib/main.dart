@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'core/services/background_audio/background_audio.dart';
 import 'core/services/download_service.dart';
+import 'core/services/font_scale_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/theme/app_theme.dart';
@@ -22,6 +23,7 @@ void main() async {
     await initBackground();
   } catch (_) {}
   await ThemeService().init();
+  await FontScaleService().init();
   await DownloadService().init();
   runApp(const App());
 }
@@ -32,7 +34,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService(),
+      listenable: Listenable.merge([ThemeService(), FontScaleService()]),
       builder: (context, _) {
         return MaterialApp.router(
           title: 'Serigne Sam Mbaye',
@@ -41,6 +43,11 @@ class App extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeService().mode,
           routerConfig: AppRouter.router,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(FontScaleService().scale)),
+            child: child!,
+          ),
         );
       },
     );

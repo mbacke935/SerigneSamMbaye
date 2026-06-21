@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
@@ -7,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/audio_model.dart';
 import 'background_audio/background_audio.dart';
 import 'history_service.dart';
+
+enum RepeatMode { none, one, all }
 
 class AudioPlayerService {
   static final AudioPlayerService _instance = AudioPlayerService._internal();
@@ -37,6 +40,8 @@ class AudioPlayerService {
   final ValueNotifier<double> speedNotifier = ValueNotifier(1.0);
   final ValueNotifier<String?> errorNotifier = ValueNotifier(null);
   final ValueNotifier<DateTime?> sleepTimerEndNotifier = ValueNotifier(null);
+  final ValueNotifier<bool> shuffleNotifier = ValueNotifier(false);
+  final ValueNotifier<RepeatMode> repeatNotifier = ValueNotifier(RepeatMode.none);
 
   List<AudioModel> _playlist = [];
   int _playlistIndex = 0;
@@ -126,15 +131,46 @@ class AudioPlayerService {
     sleepTimerEndNotifier.value = null;
   }
 
+  // ── Shuffle / Repeat ───────────────────────────────────────────────────────
+
+  void toggleShuffle() => shuffleNotifier.value = !shuffleNotifier.value;
+
+  void cycleRepeat() {
+    final modes = RepeatMode.values;
+    final i = modes.indexOf(repeatNotifier.value);
+    repeatNotifier.value = modes[(i + 1) % modes.length];
+  }
+
   // ── Playback ───────────────────────────────────────────────────────────────
 
   Future<void> _onCompleted() async {
-    if (_currentAudio != null) {
-      await _clearPosition(_currentAudio!.id);
-    }
-    if (hasNext) {
-      _playlistIndex++;
-      await playAudio(_playlist[_playlistIndex], keepPlaylist: true);
+    if (_currentAudio != null) await _clearPosition(_currentAudio!.id);
+
+    switch (repeatNotifier.value) {
+      case RepeatMode.one:
+        if (_currentAudio != null) {
+          await playAudio(_currentAudio!, keepPlaylist: true);
+        }
+        return;
+      case RepeatMode.all:
+        if (_playlist.isEmpty) return;
+        if (hasNext) {
+          _playlistIndex++;
+        } else {
+          _playlistIndex = 0;
+        }
+        await playAudio(_playlist[_playlistIndex], keepPlaylist: true);
+        return;
+      case RepeatMode.none:
+        if (shuffleNotifier.value && _playlist.length > 1) {
+          final candidates = List.generate(_playlist.length, (i) => i)
+            ..remove(_playlistIndex);
+          _playlistIndex = candidates[Random().nextInt(candidates.length)];
+          await playAudio(_playlist[_playlistIndex], keepPlaylist: true);
+        } else if (hasNext) {
+          _playlistIndex++;
+          await playAudio(_playlist[_playlistIndex], keepPlaylist: true);
+        }
     }
   }
 
@@ -193,8 +229,15 @@ class AudioPlayerService {
   }
 
   Future<void> playNext() async {
-    if (!hasNext) return;
-    _playlistIndex++;
+    if (_playlist.isEmpty) return;
+    if (shuffleNotifier.value && _playlist.length > 1) {
+      final candidates = List.generate(_playlist.length, (i) => i)
+        ..remove(_playlistIndex);
+      _playlistIndex = candidates[Random().nextInt(candidates.length)];
+    } else {
+      if (!hasNext) return;
+      _playlistIndex++;
+    }
     await playAudio(_playlist[_playlistIndex], keepPlaylist: true);
   }
 

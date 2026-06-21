@@ -39,10 +39,14 @@ class NotificationService {
       sound: true,
     );
 
-    // Topics non supportés sur Web — mobile uniquement
+    // Topics non supportés sur Web — applique les préférences sauvegardées
     if (!kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
       for (final topic in _kTopics) {
-        await FirebaseMessaging.instance.subscribeToTopic(topic);
+        final enabled = prefs.getBool('notif_pref_$topic') ?? true;
+        if (enabled) {
+          await FirebaseMessaging.instance.subscribeToTopic(topic);
+        }
       }
     }
 

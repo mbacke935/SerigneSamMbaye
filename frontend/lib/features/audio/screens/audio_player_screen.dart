@@ -12,6 +12,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/duration_ext.dart';
 import '../../../widgets/equalizer_bars.dart';
 
+// ignore_for_file: use_build_context_synchronously
+
 class AudioPlayerScreen extends StatefulWidget {
   final AudioModel audio;
 
@@ -412,6 +414,47 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
 
         return Column(
           children: [
+            // Shuffle / Repeat row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: _playerService.shuffleNotifier,
+                  builder: (_, shuffle, __) => IconButton(
+                    icon: Icon(Icons.shuffle_rounded,
+                        color: shuffle ? AppTheme.gold : Colors.white38,
+                        size: 22),
+                    onPressed: _playerService.toggleShuffle,
+                    tooltip: 'Aléatoire',
+                  ),
+                ),
+                const SizedBox(width: 24),
+                ValueListenableBuilder<RepeatMode>(
+                  valueListenable: _playerService.repeatNotifier,
+                  builder: (_, mode, __) {
+                    IconData icon;
+                    Color color;
+                    switch (mode) {
+                      case RepeatMode.one:
+                        icon = Icons.repeat_one_rounded;
+                        color = AppTheme.gold;
+                      case RepeatMode.all:
+                        icon = Icons.repeat_rounded;
+                        color = AppTheme.gold;
+                      case RepeatMode.none:
+                        icon = Icons.repeat_rounded;
+                        color = Colors.white38;
+                    }
+                    return IconButton(
+                      icon: Icon(icon, color: color, size: 22),
+                      onPressed: _playerService.cycleRepeat,
+                      tooltip: 'Répétition',
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
