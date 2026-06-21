@@ -23,7 +23,7 @@ class Command(BaseCommand):
             qs = qs.filter(pk=options['id'])
 
         total = qs.count()
-        self.stdout.write(f'{total} vidéo(s) sans miniature à traiter…')
+        self.stdout.write(f'{total} video(s) sans miniature a traiter...')
 
         ok = skip = fail = 0
 
@@ -32,25 +32,25 @@ class Command(BaseCommand):
 
             # YouTube → on s'appuie sur le serializer (URL externe), pas besoin de fichier
             if youtube_thumbnail_url(url):
-                self.stdout.write(f'  [YOUTUBE] {video.titre} — miniature via serializer (OK)')
+                self.stdout.write(f'  [YOUTUBE] {video.titre} - miniature via serializer (OK)')
                 skip += 1
                 continue
 
             if not url:
-                self.stdout.write(f'  [SKIP]    {video.titre} — aucune URL externe')
+                self.stdout.write(f'  [SKIP]    {video.titre} - aucune URL externe')
                 skip += 1
                 continue
 
-            self.stdout.write(f'  [FFmpeg]  {video.titre}…', ending=' ')
+            self.stdout.write(f'  [FFmpeg]  {video.titre}...', ending=' ')
             frame = extract_frame_from_url(url)
             if frame:
                 video.image_miniature.save(f'thumb_{video.pk}.jpg', frame, save=True)
-                self.stdout.write('✓')
+                self.stdout.write('OK')
                 ok += 1
             else:
-                self.stdout.write('✗ (échec FFmpeg)')
+                self.stdout.write('ECHEC (FFmpeg)')
                 fail += 1
 
         self.stdout.write(
-            f'\nTerminé : {ok} générée(s), {skip} ignorée(s), {fail} échouée(s).'
+            f'\nTermine : {ok} generee(s), {skip} ignoree(s), {fail} echouee(s).'
         )
