@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/models/video_model.dart';
 import '../core/theme/app_theme.dart';
+import 'network_thumb.dart';
 
 class VideoCard extends StatelessWidget {
   final VideoModel video;
@@ -104,13 +104,11 @@ class VideoCard extends StatelessWidget {
 
   Widget _buildThumbnail() {
     if (video.imageMiniature != null && video.imageMiniature!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: video.imageMiniature!,
+      return NetworkThumb(
+        url: video.imageMiniature!,
         height: 110,
         width: double.infinity,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => _placeholder(),
-        errorWidget: (_, __, ___) => _placeholder(),
+        placeholder: _placeholder(),
       );
     }
     return _placeholder();

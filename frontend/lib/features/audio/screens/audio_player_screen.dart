@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -11,6 +10,7 @@ import '../../../core/services/favori_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/duration_ext.dart';
 import '../../../widgets/equalizer_bars.dart';
+import '../../../widgets/network_thumb.dart';
 
 // ignore_for_file: use_build_context_synchronously
 
@@ -246,11 +246,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       ),
       clipBehavior: Clip.antiAlias,
       child: thumbnail != null && thumbnail.isNotEmpty
-          ? CachedNetworkImage(
-              imageUrl: thumbnail,
-              fit: BoxFit.cover,
-              placeholder: (_, __) => _coverPlaceholder(),
-              errorWidget: (_, __, ___) => _coverPlaceholder(),
+          ? NetworkThumb(
+              url: thumbnail,
+              placeholder: _coverPlaceholder(),
             )
           : _coverPlaceholder(),
     );

@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
@@ -6,6 +5,7 @@ import '../core/models/audio_model.dart';
 import '../core/services/audio_player_service.dart';
 import '../core/theme/app_theme.dart';
 import 'equalizer_bars.dart';
+import 'network_thumb.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -182,13 +182,11 @@ class _MiniPlayerContent extends StatelessWidget {
 
   Widget _thumbnail() {
     if (audio.imageMiniature != null && audio.imageMiniature!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: audio.imageMiniature!,
+      return NetworkThumb(
+        url: audio.imageMiniature!,
         width: 40,
         height: 40,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => _placeholderIcon(),
-        errorWidget: (_, __, ___) => _placeholderIcon(),
+        placeholder: _placeholderIcon(),
       );
     }
     return _placeholderIcon();

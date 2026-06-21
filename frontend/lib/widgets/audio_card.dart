@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/models/audio_model.dart';
 import '../core/theme/app_theme.dart';
+import 'network_thumb.dart';
 
 class AudioCard extends StatelessWidget {
   final AudioModel audio;
@@ -103,13 +103,11 @@ class AudioCard extends StatelessWidget {
 
   Widget _buildThumbnail() {
     if (audio.imageMiniature != null && audio.imageMiniature!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: audio.imageMiniature!,
+      return NetworkThumb(
+        url: audio.imageMiniature!,
         height: 100,
         width: 160,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => _placeholder(),
-        errorWidget: (_, __, ___) => _placeholder(),
+        placeholder: _placeholder(),
       );
     }
     return _placeholder();
