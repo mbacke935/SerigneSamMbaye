@@ -42,8 +42,6 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-WHITENOISE_MANIFEST_STRICT = False
-
 JAZZMIN_SETTINGS = {
     "site_title": "Serigne Sam Mbaye",
     "site_header": "Serigne Sam Mbaye",
@@ -121,7 +119,7 @@ STORAGES = {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
 
