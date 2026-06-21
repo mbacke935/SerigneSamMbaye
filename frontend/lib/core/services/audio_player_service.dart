@@ -5,6 +5,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/audio_model.dart';
+import 'background_audio/background_audio.dart';
+import 'history_service.dart';
 
 class AudioPlayerService {
   static final AudioPlayerService _instance = AudioPlayerService._internal();
@@ -34,11 +36,12 @@ class AudioPlayerService {
   final ValueNotifier<AudioModel?> _currentAudioNotifier = ValueNotifier(null);
   final ValueNotifier<double> speedNotifier = ValueNotifier(1.0);
   final ValueNotifier<String?> errorNotifier = ValueNotifier(null);
+  final ValueNotifier<DateTime?> sleepTimerEndNotifier = ValueNotifier(null);
 
-  // Playlist context (set by album detail or audio list)
   List<AudioModel> _playlist = [];
   int _playlistIndex = 0;
   Timer? _positionSaveTimer;
+  Timer? _sleepTimer;
 
   ValueListenable<AudioModel?> get currentAudioListenable => _currentAudioNotifier;
   ValueListenable<double> get speedListenable => speedNotifier;
@@ -53,6 +56,8 @@ class AudioPlayerService {
     _playlist = List.of(playlist);
     _playlistIndex = startIndex.clamp(0, playlist.length - 1);
   }
+
+  // ── Speed ──────────────────────────────────────────────────────────────────
 
   Future<void> _loadPersistedSpeed() async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,6 +75,8 @@ class AudioPlayerService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('playback_speed', next);
   }
+
+  // ── Position persistence ───────────────────────────────────────────────────
 
   void _startPositionTimer() {
     _stopPositionTimer();
@@ -102,6 +109,25 @@ class AudioPlayerService {
     await prefs.remove('pos_$audioId');
   }
 
+  // ── Sleep timer ────────────────────────────────────────────────────────────
+
+  void setSleepTimer(Duration duration) {
+    _sleepTimer?.cancel();
+    sleepTimerEndNotifier.value = DateTime.now().add(duration);
+    _sleepTimer = Timer(duration, () async {
+      await _player.pause();
+      sleepTimerEndNotifier.value = null;
+    });
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    sleepTimerEndNotifier.value = null;
+  }
+
+  // ── Playback ───────────────────────────────────────────────────────────────
+
   Future<void> _onCompleted() async {
     if (_currentAudio != null) {
       await _clearPosition(_currentAudio!.id);
@@ -126,7 +152,6 @@ class AudioPlayerService {
       return;
     }
 
-    // Sauvegarder la position de l'audio précédent avant de changer
     if (_currentAudio != null && _currentAudio!.id != audio.id) {
       _stopPositionTimer();
       await _savePosition(_currentAudio!.id, _player.position);
@@ -141,15 +166,18 @@ class AudioPlayerService {
     _currentAudio = audio;
     _currentAudioNotifier.value = audio;
 
+    // Track in history (fire-and-forget)
+    unawaited(HistoryService().add(audio));
+
     try {
-      await _player.setUrl(url).timeout(const Duration(seconds: 30));
+      await setPlayerSource(_player, audio, url)
+          .timeout(const Duration(seconds: 30));
     } catch (_) {
       await _player.stop();
       _setError(audio, 'Impossible de lire cet audio. Vérifiez le lien ou réessayez.');
       return;
     }
 
-    // Restaurer la position de lecture sauvegardée
     final savedPos = await _loadPosition(audio.id);
     if (savedPos != null) {
       try {
@@ -160,7 +188,7 @@ class AudioPlayerService {
     try {
       await _player.play();
     } catch (_) {
-      // Autoplay bloqué sur web — l'audio est chargé, le bouton lecture prendra le relais.
+      // Autoplay bloqué sur web — le bouton lecture prendra le relais.
     }
   }
 
@@ -171,7 +199,6 @@ class AudioPlayerService {
   }
 
   Future<void> playPrevious() async {
-    // Si on est à plus de 3s dans l'audio, revenir au début plutôt qu'à la piste précédente.
     if (_player.position.inSeconds > 3) {
       await _player.seek(Duration.zero);
       return;
@@ -210,6 +237,7 @@ class AudioPlayerService {
 
   Future<void> stop() async {
     _stopPositionTimer();
+    cancelSleepTimer();
     if (_currentAudio != null) {
       await _savePosition(_currentAudio!.id, _player.position);
     }

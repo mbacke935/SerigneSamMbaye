@@ -75,6 +75,52 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     );
   }
 
+  void _showSleepTimerSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+              child: Text('Minuteur de sommeil',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+            ),
+            for (final min in [15, 30, 45, 60])
+              ListTile(
+                leading: const Icon(Icons.timer_outlined),
+                title: Text('$min minutes'),
+                onTap: () {
+                  _playerService.setSleepTimer(Duration(minutes: min));
+                  Navigator.pop(context);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.timer_off_outlined, color: Colors.red),
+              title: const Text('Annuler', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                _playerService.cancelSleepTimer();
+                Navigator.pop(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtCountdown(DateTime end) {
+    final diff = end.difference(DateTime.now());
+    if (diff.isNegative) return '';
+    final m = diff.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = diff.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '${diff.inHours > 0 ? "${diff.inHours}:" : ""}$m:$s';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<AudioModel?>(
@@ -92,6 +138,33 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             title: const Text('En lecture',
                 style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
             actions: [
+              ValueListenableBuilder<DateTime?>(
+                valueListenable: _playerService.sleepTimerEndNotifier,
+                builder: (context, end, _) {
+                  if (end == null) return const SizedBox.shrink();
+                  return StreamBuilder<int>(
+                    stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+                    builder: (context, _) {
+                      final label = _fmtCountdown(end);
+                      if (label.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: GestureDetector(
+                          onTap: _showSleepTimerSheet,
+                          child: Chip(
+                            label: Text(label,
+                                style: const TextStyle(
+                                    color: AppTheme.gold, fontSize: 12, fontWeight: FontWeight.w600)),
+                            backgroundColor: Colors.white.withValues(alpha: 0.12),
+                            side: BorderSide.none,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.share_rounded, color: Colors.white70),
                 onPressed: _share,
@@ -391,14 +464,33 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 ),
                 SizedBox(
                   width: 48,
-                  child: IconButton(
-                    icon: const Icon(Icons.stop_rounded),
-                    color: Colors.white70,
-                    iconSize: 28,
-                    onPressed: () {
-                      _playerService.stop();
-                      Navigator.of(context).maybePop();
-                    },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.stop_rounded),
+                        color: Colors.white70,
+                        iconSize: 24,
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          _playerService.stop();
+                          Navigator.of(context).maybePop();
+                        },
+                      ),
+                      IconButton(
+                        icon: ValueListenableBuilder<DateTime?>(
+                          valueListenable: _playerService.sleepTimerEndNotifier,
+                          builder: (_, end, __) => Icon(
+                            Icons.timer_outlined,
+                            color: end != null ? AppTheme.gold : Colors.white54,
+                            size: 22,
+                          ),
+                        ),
+                        padding: EdgeInsets.zero,
+                        onPressed: _showSleepTimerSheet,
+                        tooltip: 'Minuteur',
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -7,6 +7,7 @@ import '../../../core/models/citation_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/album_service.dart';
 import '../../../core/services/content_service.dart';
+import '../../../core/services/history_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../widgets/album_card.dart';
 import '../../../widgets/app_states.dart';
@@ -41,12 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _albumService.getAlbums(),
       _service.getDerniersAudios(limit: 8),
       _service.getDernieresVideos(limit: 6),
+      HistoryService().getHistory(),
     ]);
     return _HomeData(
       citation: results[0] as CitationModel?,
       albums: results[1] as List<AlbumModel>,
       audios: results[2] as List<AudioModel>,
       videos: results[3] as List<VideoModel>,
+      history: results[4] as List<AudioModel>,
     );
   }
 
@@ -159,6 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
           delay: const Duration(milliseconds: 60),
           child: _BiographieNavCard(onTap: () => context.push('/biographie')),
         ),
+        if (data.history.isNotEmpty) ...[
+          _SectionHeader(title: 'Récemment écoutés'),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 75),
+            child: _AudiosRail(audios: data.history),
+          ),
+        ],
         if (data.albums.isNotEmpty) ...[
           _SectionHeader(title: 'Albums'),
           FadeSlideIn(
@@ -200,12 +210,14 @@ class _HomeData {
   final List<AlbumModel> albums;
   final List<AudioModel> audios;
   final List<VideoModel> videos;
+  final List<AudioModel> history;
 
   const _HomeData({
     required this.citation,
     required this.albums,
     required this.audios,
     required this.videos,
+    required this.history,
   });
 }
 

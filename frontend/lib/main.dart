@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'core/services/background_audio/background_audio.dart';
+import 'core/services/download_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/theme/app_theme.dart';
@@ -16,7 +18,11 @@ void main() async {
   } catch (_) {
     // Firebase non configuré — exécutez `flutterfire configure` pour activer les notifications.
   }
+  try {
+    await initBackground();
+  } catch (_) {}
   await ThemeService().init();
+  await DownloadService().init();
   runApp(const App());
 }
 

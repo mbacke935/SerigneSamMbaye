@@ -4,6 +4,7 @@ import '../core/models/audio_model.dart';
 import '../core/models/video_model.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/auth/screens/profile_screen.dart';
 import '../features/home/screens/home_screen.dart';
@@ -29,6 +30,11 @@ class AppRouter {
         path: '/splash',
         name: 'splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/connexion',

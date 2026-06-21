@@ -31,6 +31,17 @@ class AudioModel {
     return normalizeMediaUrl(raw);
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'titre': titre,
+        'description': description,
+        'fichier': fichier,
+        'lien_externe': lienExterne,
+        'image_miniature': imageMiniature,
+        'duree': duree,
+        'date_publication': datePublication,
+      };
+
   factory AudioModel.fromJson(Map<String, dynamic> json) {
     return AudioModel(
       id: json['id'] as int,

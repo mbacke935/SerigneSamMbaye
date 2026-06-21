@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -26,8 +27,11 @@ class _SplashScreenState extends State<SplashScreen>
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
-    _redirectTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) context.go('/');
+    _redirectTimer = Timer(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      final done = prefs.getString('onboarding_done');
+      if (mounted) context.go(done == null ? '/onboarding' : '/');
     });
   }
 

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/models/audio_model.dart';
+import '../core/services/download_service.dart';
 import '../core/theme/app_theme.dart';
 import 'equalizer_bars.dart';
 
@@ -96,6 +98,7 @@ class AudioListTile extends StatelessWidget {
                     ),
                     onPressed: onFavoriTap,
                   ),
+                if (!kIsWeb) _DownloadButton(audio: audio),
                 Icon(Icons.play_circle_fill_rounded,
                     color: isCurrentlyPlaying ? AppTheme.primary : AppTheme.gold, size: 30),
               ],
@@ -125,6 +128,53 @@ class AudioListTile extends StatelessWidget {
       height: 54,
       color: AppTheme.primary.withValues(alpha: 0.08),
       child: const Icon(Icons.headphones_rounded, color: AppTheme.primary, size: 24),
+    );
+  }
+}
+
+class _DownloadButton extends StatelessWidget {
+  final AudioModel audio;
+  const _DownloadButton({required this.audio});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = DownloadService();
+    return ValueListenableBuilder<double>(
+      valueListenable: service.progressOf(audio.id),
+      builder: (context, progress, _) {
+        final downloaded = service.isDownloaded(audio.id);
+        if (progress > 0 && progress < 1.0) {
+          return SizedBox(
+            width: 36,
+            height: 36,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: CircularProgressIndicator(
+                value: progress,
+                strokeWidth: 2.5,
+                color: AppTheme.primary,
+              ),
+            ),
+          );
+        }
+        return IconButton(
+          icon: Icon(
+            downloaded ? Icons.download_done_rounded : Icons.download_outlined,
+            size: 20,
+            color: downloaded
+                ? AppTheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          tooltip: downloaded ? 'Supprimer' : 'Télécharger',
+          onPressed: () async {
+            if (downloaded) {
+              await service.deleteAudio(audio.id);
+            } else {
+              await service.downloadAudio(audio);
+            }
+          },
+        );
+      },
     );
   }
 }
