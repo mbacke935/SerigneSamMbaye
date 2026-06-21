@@ -5,6 +5,7 @@ from django.contrib import admin, messages
 from django.shortcuts import render
 from django.urls import path, reverse
 
+
 from apps.albums.models import Album
 
 from .models import Video
@@ -31,6 +32,8 @@ def _parse_lines(raw: str):
 
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/videos/video_changelist.html'
+
     list_display = ('titre', 'album', 'date_publication', 'duree', 'is_published', 'date_creation')
     list_filter = ('is_published', 'album')
     list_editable = ('is_published',)
@@ -59,11 +62,6 @@ class VideoAdmin(admin.ModelAdmin):
                  name='videos_video_bulk_import'),
         ]
         return custom + urls
-
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        extra_context['bulk_import_url'] = reverse('admin:videos_video_bulk_import')
-        return super().changelist_view(request, extra_context=extra_context)
 
     def bulk_import_view(self, request):
         list_url = reverse('admin:videos_video_changelist')

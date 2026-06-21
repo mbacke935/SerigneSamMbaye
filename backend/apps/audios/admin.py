@@ -2,7 +2,7 @@ import urllib.parse
 from datetime import date
 
 from django.contrib import admin, messages
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.urls import path, reverse
 
 from apps.albums.models import Album
@@ -32,6 +32,8 @@ def _parse_lines(raw: str):
 
 @admin.register(Audio)
 class AudioAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/audios/audio_changelist.html'
+
     list_display = ('titre', 'album', 'date_publication', 'duree', 'is_published', 'date_creation')
     list_filter = ('is_published', 'album')
     list_editable = ('is_published',)
@@ -60,11 +62,6 @@ class AudioAdmin(admin.ModelAdmin):
                  name='audios_audio_bulk_import'),
         ]
         return custom + urls
-
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        extra_context['bulk_import_url'] = reverse('admin:audios_audio_bulk_import')
-        return super().changelist_view(request, extra_context=extra_context)
 
     def bulk_import_view(self, request):
         list_url = reverse('admin:audios_audio_changelist')
