@@ -1,7 +1,8 @@
 from django.db import models
 
-from config.media_processing import normalize_external_url
+from config.media_processing import is_new_upload, normalize_external_url
 from config.storage import video_storage
+from config.video_thumbnail import extract_frame_from_file
 
 
 class Video(models.Model):
@@ -29,10 +30,17 @@ class Video(models.Model):
         ordering = ['-date_publication']
 
     def save(self, *args, **kwargs):
-        # Normalise le lien externe (espaces/accents → %XX) pour que les lecteurs
-        # puissent le charger. Idempotent : un lien déjà encodé reste inchangé.
         if self.lien_externe:
             self.lien_externe = normalize_external_url(self.lien_externe)
+
+        # Auto-miniature à partir d'un fichier vidéo fraîchement uploadé
+        if not self.image_miniature and is_new_upload(self.fichier):
+            frame = extract_frame_from_file(self.fichier)
+            if frame:
+                self.image_miniature.save(
+                    f'thumb_video_{self.pk or "new"}.jpg', frame, save=False
+                )
+
         super().save(*args, **kwargs)
 
     def __str__(self):
