@@ -8,6 +8,7 @@ import '../../../widgets/app_states.dart';
 import '../../../widgets/search_field.dart';
 import '../../../widgets/skeleton.dart';
 import '../../../widgets/video_card.dart';
+import 'video_player_screen.dart' show VideoPlayerArgs;
 
 class VideoListScreen extends StatefulWidget {
   const VideoListScreen({super.key});
@@ -129,7 +130,11 @@ class _VideoListScreenState extends State<VideoListScreen> {
                   final video = _filteredVideos[i];
                   return VideoCard(
                     video: video,
-                    onTap: () => context.push('/videos/lecteur', extra: video),
+                    onTap: () => context.push('/videos/lecteur',
+                        extra: VideoPlayerArgs(
+                          playlist: _filteredVideos,
+                          initialIndex: i,
+                        )),
                   );
                 },
                 childCount: _filteredVideos.length,

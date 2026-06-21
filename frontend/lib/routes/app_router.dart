@@ -11,7 +11,8 @@ import '../features/home/screens/home_screen.dart';
 import '../features/audio/screens/audio_list_screen.dart';
 import '../features/audio/screens/audio_player_screen.dart';
 import '../features/video/screens/video_list_screen.dart';
-import '../features/video/screens/video_player_screen.dart';
+import '../features/video/screens/video_player_screen.dart'
+    show VideoPlayerScreen, VideoPlayerArgs;
 import '../features/albums/screens/album_detail_screen.dart';
 import '../features/biography/screens/biography_screen.dart';
 import '../features/citations/screens/citation_reader_screen.dart';
@@ -105,9 +106,15 @@ class AppRouter {
         path: '/videos/lecteur',
         name: 'videoPlayer',
         builder: (context, state) {
-          final video = state.extra as VideoModel?;
-          if (video == null) return const _PlaceholderScreen(title: 'Vidéo');
-          return VideoPlayerScreen(video: video);
+          final extra = state.extra;
+          VideoPlayerArgs? args;
+          if (extra is VideoPlayerArgs) {
+            args = extra;
+          } else if (extra is VideoModel) {
+            args = VideoPlayerArgs(playlist: [extra], initialIndex: 0);
+          }
+          if (args == null) return const _PlaceholderScreen(title: 'Vidéo');
+          return VideoPlayerScreen(args: args);
         },
       ),
 
