@@ -18,9 +18,8 @@ void main() async {
   await DownloadService().init();
   // JustAudioBackground doit être initialisé AVANT runApp et AVANT la création
   // de tout AudioPlayer, sinon setAudioSource() échoue silencieusement sur Android.
-  try {
-    await initBackground();
-  } catch (_) {}
+  // Les erreurs sont gérées dans background_audio_native.dart avec fallback sans notification.
+  await initBackground();
 
   // Lance l'app immédiatement : plus de blanc/gel au démarrage.
   runApp(const App());
