@@ -16,12 +16,16 @@ void main() async {
   await ThemeService().init();
   await FontScaleService().init();
   await DownloadService().init();
+  // JustAudioBackground doit être initialisé AVANT runApp et AVANT la création
+  // de tout AudioPlayer, sinon setAudioSource() échoue silencieusement sur Android.
+  try {
+    await initBackground();
+  } catch (_) {}
 
   // Lance l'app immédiatement : plus de blanc/gel au démarrage.
   runApp(const App());
 
-  // Services réseau initialisés en arrière-plan (Firebase, FCM, audio).
-  // Ils sont prêts bien avant que l'utilisateur interagisse avec l'app.
+  // Firebase et FCM en arrière-plan — ils ne bloquent pas la lecture audio.
   _initBackgroundServices();
 }
 
@@ -31,9 +35,6 @@ Future<void> _initBackgroundServices() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await NotificationService.instance.init();
-  } catch (_) {}
-  try {
-    await initBackground();
   } catch (_) {}
 }
 
